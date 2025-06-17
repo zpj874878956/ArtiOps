@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+
+# Django
+*.log
+*.pot
+*.pyc
+/backend/*/migrations/
+**/migrations/
+db.sqlite3
+/backend/backups/
+/liteops-www/
+package.json
+
+# Node
+node_modules/
+package-lock.json
+**/node_modules/
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.gz
+*.xml
+
+# web
+/web/

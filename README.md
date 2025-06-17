@@ -1,124 +1,123 @@
-以下是根据你的描述生成的 `README.md` 文档内容，适用于一个 GitHub 开源项目仓库：
+# ArtiOps - AI驱动的DevOps自动化平台
 
-````markdown
-# AritiOps 平台
+ArtiOps是一个基于人工智能的DevOps自动化平台，提供项目管理、CI/CD、环境管理等功能，旨在简化开发运维流程，提高团队协作效率。
 
-> 一套基于 Python Django 构建的企业级运维管理平台，集成 CMDB、任务调度、应用发布、多云与多 Kubernetes 集群管理能力。
+## 功能特点
 
----
+- **智能化项目管理**：基于AI的项目分析和优化建议
+- **自动化构建与部署**：支持多种CI/CD流程
+- **环境管理**：统一管理开发、测试、生产环境
+- **凭证管理**：安全存储和管理各类访问凭证
+- **系统配置**：灵活的系统配置管理
+- **操作日志**：详细记录系统操作，支持审计追踪
 
-## 🏗️ 架构设计
+## 系统架构
 
-本项目采用现代运维系统常见技术栈：
-
-- **后端框架**：Python 3 + Django
+- **前端**：React + Ant Design + TypeScript
+- **后端**：Django + Django REST Framework
 - **数据库**：MySQL
-- **缓存与队列**：Redis
-- **自动化工具集成**：Ansible / Shell 脚本支持
-- **支持多云 / 多集群管理能力**
+- **缓存**：Redis
+- **任务队列**：Celery
 
----
+## 快速开始
 
-## ✨ 功能模块
+### 环境要求
 
-### 1. CMDB 资产管理
-- 自动化采集主机与应用信息
-- 多维度资产视图（按业务线 / 环境 / 标签）
-- 支持静态录入与 API 同步
+- Python 3.8+
+- Node.js 14+
+- MySQL 5.7+
+- Redis 5.0+
 
-### 2. Ansible / Shell 管理
-- 支持 Ansible 剧本运行与任务参数管理
-- 支持自定义 Shell 脚本管理、调度与执行
-- 任务日志审计与权限管控
+### 开发环境搭建
 
-### 3. 任务调度平台
-- 定时任务、周期性任务与一次性任务调度支持
-- 支持任务依赖、并发控制、失败重试等机制
+1. 克隆仓库
 
-### 4. 应用发布系统
-- 灰度发布 / 回滚
-- 多环境支持（测试、预发、生产）
-- 与 CI/CD 工具链集成（可拓展）
-
-### 5. 多云资源管理
-- AWS / 阿里云 / 腾讯云 等云平台接入
-- 实例生命周期管理
-- 资源用量展示与账单预估
-
-### 6. 多 Kubernetes 集群管理
-- 多集群统一视图
-- 命名空间 / Pod / Deployment 状态监控
-- K8s 应用发布与日志查询
-
----
-
-## 🛠️ 安装与部署
-
-### 环境依赖
-- Python >= 3.8
-- MySQL >= 5.7
-- Redis >= 5.0
-- Ansible >= 2.9
-
-### 快速启动（开发环境）
 ```bash
-git clone https://github.com/zpj874878956/AritiOps.git
-cd AritiOps
+git clone https://github.com/yourusername/artiops.git
+cd artiops
+```
 
+2. 后端设置
+
+```bash
 # 创建虚拟环境
-python3 -m venv venv
-source venv/bin/activate
+python -m venv venv
+source venv/bin/activate  # 在Windows上使用: venv\Scripts\activate
 
 # 安装依赖
 pip install -r requirements.txt
 
+# 配置环境变量
+cp .env.example .env
+# 编辑.env文件，设置必要的环境变量
+
 # 初始化数据库
 python manage.py migrate
 
-# 启动服务
+# 创建超级用户
+python manage.py createsuperuser
+
+# 初始化系统配置
+python manage.py init_system
+```
+
+3. 前端设置
+
+```bash
+cd frontend
+npm install
+```
+
+4. 启动开发服务器
+
+```bash
+# 使用启动脚本
+python start.py
+
+# 或分别启动前后端
+# 后端
 python manage.py runserver
-````
 
----
-
-## 📦 项目结构（示意）
-
-```
-AritiOps/
-├── cmdb/                # 资产管理模块
-├── jobs/                # 调度系统模块
-├── publish/             # 应用发布模块
-├── k8s_manager/         # 多集群 Kubernetes 管理
-├── cloud/               # 多云管理模块
-├── scripts/             # 自定义 Shell / Ansible 脚本
-├── core/                # 公共组件、配置、中间件
-├── manage.py
-└── requirements.txt
+# 前端
+cd frontend
+npm start
 ```
 
----
+## 使用说明
 
-## 🧑‍💻 贡献指南
+访问 http://localhost:3000 打开前端界面，使用超级用户账号登录管理后台。
 
-欢迎提交 Issue 与 Pull Request，贡献你的功能、优化或文档建议。
-
----
-
-## 📄 开源协议
-
-本项目采用 [MIT License](LICENSE)。
-
----
-
-## 📬 联系我们
-
-如需定制或企业支持，请联系：`devops-team@example.com`
-
----
-
-> Powered by 运维工程师 • Driven by 自动化思维
+## 项目结构
 
 ```
-
-如需定制更详细的模块文档（如每个模块的 ER 图、API 文档、部署图），可以随时告诉我，我可以继续生成。是否需要我帮你添加 GitHub CI/CD 流程或 Dockerfile？
+artiops/
+├── backend/                # 后端代码
+│   ├── apps/               # 应用模块
+│   │   ├── builds/         # 构建管理
+│   │   ├── credentials/    # 凭证管理
+│   │   ├── environments/   # 环境管理
+│   │   ├── logs/           # 日志管理
+│   │   ├── projects/       # 项目管理
+│   │   ├── system/         # 系统管理
+│   │   └── users/          # 用户管理
+│   ├── core/               # 核心功能
+│   └── config/             # 项目配置
+├── frontend/               # 前端代码
+├── logs/                   # 日志文件
+├── .env                    # 环境变量
+├── manage.py               # Django管理脚本
+├── requirements.txt        # Python依赖
+├── start.py                # 启动脚本
+└── README.md               # 项目说明
 ```
+
+## 贡献指南
+
+欢迎贡献代码，请参阅 [CONTRIBUTING.md](CONTRIBUTING.md) 了解详情。
+
+## 许可证
+
+本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
+```
+python start.py --backend-only
+python start.py --skip-migrations --skip-checks
