@@ -26,7 +26,7 @@ def print_banner():
    ██║  ██║██║  ██║   ██║   ██║╚██████╔╝██║     ███████║
    ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝     ╚══════╝
                                        
-    AI驱动的DevOps自动化平台
+    AI驱动的DevOps自动化平台 - 后端API服务
     """)
     print("=" * 80 + "\n")
 
@@ -66,7 +66,7 @@ def check_environment():
 def install_requirements():
     """安装项目依赖"""
     print("📦 安装项目依赖...")
-    backend_dir = BASE_DIR / "backend"
+    backend_dir = BASE_DIR
     req_file = backend_dir / "requirements.txt"
     
     if not req_file.exists():
@@ -84,39 +84,10 @@ def install_requirements():
         print(f"❌ 依赖安装失败: {e}")
         return False
 
-def run_migrations():
-    """运行数据库迁移"""
-    print("🔄 运行数据库迁移...")
-    backend_dir = BASE_DIR / "backend"
-    manage_py = backend_dir / "manage.py"
-    
-    if not manage_py.exists():
-        print(f"❌ 找不到manage.py文件: {manage_py}")
-        return False
-    
-    try:
-        # 生成迁移文件
-        subprocess.run(
-            [sys.executable, str(manage_py), "makemigrations"],
-            check=True
-        )
-        
-        # 应用迁移
-        subprocess.run(
-            [sys.executable, str(manage_py), "migrate"],
-            check=True
-        )
-        
-        print("✅ 数据库迁移完成\n")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"❌ 数据库迁移失败: {e}")
-        return False
-
 def create_superuser():
     """创建超级用户（如果不存在）"""
     print("👤 检查超级用户...")
-    backend_dir = BASE_DIR / "backend"
+    backend_dir = BASE_DIR
     manage_py = backend_dir / "manage.py"
     
     try:
@@ -147,7 +118,7 @@ def create_superuser():
 def collect_static_files():
     """收集静态文件"""
     print("📂 收集静态文件...")
-    backend_dir = BASE_DIR / "backend"
+    backend_dir = BASE_DIR
     manage_py = backend_dir / "manage.py"
     
     try:
@@ -163,14 +134,17 @@ def collect_static_files():
 
 def start_development_server(port=8000, no_browser=False):
     """启动开发服务器"""
-    print(f"🚀 启动开发服务器 (端口: {port})...")
-    backend_dir = BASE_DIR / "backend"
+    print(f"🚀 启动API开发服务器 (端口: {port})...")
+    backend_dir = BASE_DIR
     manage_py = backend_dir / "manage.py"
+    
+    # 设置环境变量，确保 Python 能找到正确的包路径
+    os.environ['PYTHONPATH'] = str(BASE_DIR)
     
     # 打开浏览器
     if not no_browser:
-        url = f"http://127.0.0.1:{port}/admin/"
-        print(f"🌐 正在打开浏览器: {url}")
+        url = f"http://127.0.0.1:{port}/swagger/"
+        print(f"🌐 正在打开API文档: {url}")
         webbrowser.open(url)
     
     # 启动服务器
@@ -187,67 +161,13 @@ def start_development_server(port=8000, no_browser=False):
     
     return True
 
-def start_frontend_dev_server(port=8080, no_browser=False):
-    """启动前端开发服务器"""
-    print(f"🚀 启动前端开发服务器 (端口: {port})...")
-    frontend_dir = BASE_DIR / "frontend"
-    
-    if not frontend_dir.exists():
-        print(f"❌ 找不到前端目录: {frontend_dir}")
-        return False
-    
-    # 打开浏览器
-    if not no_browser:
-        url = f"http://127.0.0.1:{port}/"
-        print(f"🌐 正在打开浏览器: {url}")
-        webbrowser.open(url)
-    
-    # 启动前端服务器
-    try:
-        os.chdir(frontend_dir)
-        subprocess.run(
-            ["npm", "run", "dev", "--", "--port", str(port)],
-            check=True
-        )
-    except KeyboardInterrupt:
-        print("\n⛔ 前端服务器已停止")
-    except subprocess.CalledProcessError as e:
-        print(f"❌ 前端服务器启动失败: {e}")
-        return False
-    except FileNotFoundError:
-        print("❌ 无法启动前端服务器，请确保已安装Node.js和npm")
-        return False
-    
-    return True
-
-def init_system_config():
-    """初始化系统配置"""
-    print("🔧 初始化系统配置...")
-    backend_dir = BASE_DIR / "backend"
-    manage_py = backend_dir / "manage.py"
-    
-    try:
-        subprocess.run(
-            [sys.executable, str(manage_py), "init_system"],
-            check=True
-        )
-        print("✅ 系统配置初始化完成\n")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"❌ 系统配置初始化失败: {e}")
-        return False
-
 def main():
     """主函数"""
-    parser = argparse.ArgumentParser(description="ArtiOps启动脚本")
-    parser.add_argument("--backend-port", type=int, default=8000, help="后端服务器端口 (默认: 8000)")
-    parser.add_argument("--frontend-port", type=int, default=8080, help="前端服务器端口 (默认: 8080)")
+    parser = argparse.ArgumentParser(description="ArtiOps API服务启动脚本")
+    parser.add_argument("--port", type=int, default=8000, help="API服务器端口 (默认: 8000)")
     parser.add_argument("--no-browser", action="store_true", help="不自动打开浏览器")
     parser.add_argument("--skip-checks", action="store_true", help="跳过环境检查")
-    parser.add_argument("--skip-migrations", action="store_true", help="跳过数据库迁移")
     parser.add_argument("--skip-requirements", action="store_true", help="跳过安装依赖")
-    parser.add_argument("--frontend-only", action="store_true", help="仅启动前端服务器")
-    parser.add_argument("--backend-only", action="store_true", help="仅启动后端服务器")
     args = parser.parse_args()
     
     print_banner()
@@ -258,19 +178,10 @@ def main():
     if not args.skip_requirements:
         install_requirements()
     
-    if not args.frontend_only and not args.skip_migrations:
-        run_migrations()
-        create_superuser()
-        collect_static_files()
-        init_system_config()
+    collect_static_files()
+    # 不再执行数据库迁移和系统初始化
     
-    if args.frontend_only:
-        start_frontend_dev_server(port=args.frontend_port, no_browser=args.no_browser)
-    elif args.backend_only:
-        start_development_server(port=args.backend_port, no_browser=args.no_browser)
-    else:
-        # 默认情况下，仅启动后端服务器
-        start_development_server(port=args.backend_port, no_browser=args.no_browser)
+    start_development_server(port=args.port, no_browser=args.no_browser)
 
 if __name__ == "__main__":
     main() 

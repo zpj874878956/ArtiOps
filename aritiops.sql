@@ -113,6 +113,7 @@ CREATE TABLE `users_user` (
     `phone` varchar(20) NOT NULL,
     `position` varchar(100) NOT NULL,
     `avatar` varchar(100) NOT NULL,
+    `real_name` varchar(150) NOT NULL,
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
