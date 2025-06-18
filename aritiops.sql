@@ -157,30 +157,3 @@ CREATE TABLE `projects_projectmember` (
     UNIQUE KEY `projects_projectmember_project_id_user_id_uniq` (`project_id`, `user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `users_user` (
-    `password`,
-    `is_superuser`,
-    `username`,
-    `first_name`,
-    `last_name`,
-    `email`,
-    `is_staff`,
-    `is_active`,
-    `date_joined`,
-    `phone`,
-    `position`,
-    `avatar`
-) VALUES (
-    'pbkdf2_sha256$600000$sUJ7BnajMgq3lBMgPL9whQ$8T0o19j5RNBOH0a/u+1Edl8ev+Q3t5cNQy9OazDGQi8=',  -- 密码: admin
-    1,  -- is_superuser
-    'admin',  -- username
-    'Admin',  -- first_name
-    'User',  -- last_name
-    'admin@example.com',  -- email
-    1,  -- is_staff
-    1,  -- is_active
-    NOW(),  -- date_joined
-    '',  -- phone
-    '',  -- position
-    ''   -- avatar
-);

@@ -5,6 +5,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 import django
 
+# 使用 PyMySQL 作为 MySQL 数据库驱动
+import pymysql
+pymysql.install_as_MySQLdb()
+
 # 显示Python路径和应用路径（仅在DEBUG模式下）
 if os.getenv('DEBUG', 'True').lower() == 'true':
     print("Python 路径:")
@@ -97,31 +101,25 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # 数据库配置
-# 如果设置了数据库环境变量，使用MySQL，否则使用SQLite
-if os.getenv('DB_NAME') and os.getenv('DB_USER'):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('DB_NAME', 'artiops'),
-            'USER': os.getenv('DB_USER', 'root'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'password'),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
-            'PORT': os.getenv('DB_PORT', '3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-            },
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'aritiops',  # 请替换为您的实际数据库名
+        'USER': 'root',     # 请替换为您的实际用户名
+        'PASSWORD': 'root',     # 请替换为您的实际密码
+        'HOST': 'localhost',
+        'PORT': '3306',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         }
     }
-else:
-    # 默认使用SQLite
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        }
-    }
+}
 
 # 禁用数据库迁移
+# 下面的代码会禁用所有迁移，在表已存在的情况下可能有用
+# 如果需要使用已存在的表，请确保模型结构与表结构一致
+"""
 class DisableMigrations:
     def __contains__(self, item):
         return True
@@ -130,6 +128,7 @@ class DisableMigrations:
         return None
 
 MIGRATION_MODULES = DisableMigrations()
+"""
 
 # 密码验证
 AUTH_PASSWORD_VALIDATORS = [

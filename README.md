@@ -213,3 +213,69 @@ python manage.py runserver
 - ENCRYPTION_KEY: 加密密钥 
 
 # 管理员用户创建成功，用户名: admin，密码: Admin@2023
+
+## 常见问题解决
+
+### 关于 `from django.db import migrations` 错误
+
+如果您遇到以下错误：
+
+```
+ImportError: cannot import name 'migrations' from 'django.db' (C:\Users\87487\Desktop\python\ArtiOps\venv\Lib\site-packages\django\db\__init__.py)
+```
+
+解决方法是修改 `venv/Lib/site-packages/django/contrib/contenttypes/management/__init__.py` 文件中的导入语句：
+
+```python
+# 将此行
+from django.db import DEFAULT_DB_ALIAS, IntegrityError, migrations, router, transaction
+
+# 修改为
+from django.db import DEFAULT_DB_ALIAS, IntegrityError, router, transaction
+from django.db import migrations
+```
+
+### 关于 `ModuleNotFoundError: No module named 'Crypto'` 错误
+
+如果您在运行项目时遇到 Crypto 模块导入错误，请执行以下步骤：
+
+1. 卸载 pycryptodome（如果已安装）：
+   ```
+   pip uninstall pycryptodome
+   ```
+
+2. 安装 pycryptodomex：
+   ```
+   pip install pycryptodomex
+   ```
+
+3. 修改 `core/encryption.py` 中的导入语句：
+   ```python
+   # 将
+   from Crypto.Cipher import AES
+   from Crypto.Util.Padding import pad, unpad
+   from Crypto.Random import get_random_bytes
+   
+   # 修改为
+   from Cryptodome.Cipher import AES
+   from Cryptodome.Util.Padding import pad, unpad
+   from Cryptodome.Random import get_random_bytes
+   ```
+
+### 关于 MySQL 数据库驱动错误
+
+如果您在 Windows 上安装 mysqlclient 时遇到 "Microsoft Visual C++ 14.0 or greater is required" 错误，有两种解决方案：
+
+1. 安装 Microsoft Visual C++ 构建工具：
+   - 下载地址：https://visualstudio.microsoft.com/visual-cpp-build-tools/
+
+2. 使用 PyMySQL 替代 mysqlclient：
+   ```
+   pip install pymysql
+   ```
+   
+   然后在项目根目录的 `__init__.py` 中添加：
+   ```python
+   import pymysql
+   pymysql.install_as_MySQLdb()
+   ```
