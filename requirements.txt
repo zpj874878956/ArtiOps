@@ -41,3 +41,6 @@ flake8==6.0.0
 six==1.17.0
 python-dateutil==2.9.0.post0
 packaging==25.0
+cffi==1.17.1
+cryptography==45.0.4
+pycparser==2.22
