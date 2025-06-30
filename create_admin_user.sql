@@ -1,2 +1,0 @@
-INSERT INTO aritiops.users_user (password,last_login,is_superuser,username,first_name,last_name,email,is_staff,is_active,date_joined,phone,`position`,avatar,real_name,role_id,status,last_login_ip,last_login_time) VALUES
-	 ('pbkdf2_sha256$600000$PmKdUTO4ESL1y9vPTy2JOt$pcArBF/AmKR5Bny1Z/4Qku/qFKTNs6P294jfdsJgBto=','2025-06-18 04:44:02.491541',1,'admin','Admin','User','admin@artiops.com',1,1,'2025-06-18 12:43:32','13800138000','系统管理员','','系统管理员',NULL,1,'127.0.0.1','2025-06-18 12:43:32');
