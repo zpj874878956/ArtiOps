@@ -1,0 +1,653 @@
+{% extends 'base.html' %}
+
+{% block title %}主机组管理 - 运维平台{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">主机组管理</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addGroupModal">
+                            <i class="fas fa-plus"></i> 添加主机组
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- 搜索框 -->
+                    <div class="row mb-3">
+                        <div class="col-md-6 offset-md-6">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="searchInput" placeholder="搜索主机组名称/描述">
+                                <div class="input-group-append">
+                                    <button class="btn btn-default" id="searchBtn">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 主机组列表表格 -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px">
+                                        <input type="checkbox" id="selectAll">
+                                    </th>
+                                    <th>名称</th>
+                                    <th>描述</th>
+                                    <th>主机数量</th>
+                                    <th>创建人</th>
+                                    <th>创建时间</th>
+                                    <th style="width: 150px">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="groupTableBody">
+                                <!-- 主机组数据将通过AJAX加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 分页控件 -->
+                    <div class="row mt-3">
+                        <div class="col-sm-12 col-md-5">
+                            <div class="dataTables_info" id="paginationInfo" role="status" aria-live="polite">
+                                显示第 1 至 10 项，共 0 项
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-7">
+                            <div class="dataTables_paginate paging_simple_numbers" id="pagination">
+                                <ul class="pagination">
+                                    <li class="paginate_button page-item previous disabled">
+                                        <a href="#" class="page-link">上一页</a>
+                                    </li>
+                                    <li class="paginate_button page-item active">
+                                        <a href="#" class="page-link">1</a>
+                                    </li>
+                                    <li class="paginate_button page-item next disabled">
+                                        <a href="#" class="page-link">下一页</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加主机组模态框 -->
+<div class="modal fade" id="addGroupModal" tabindex="-1" role="dialog" aria-labelledby="addGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addGroupModalLabel">添加主机组</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addGroupForm">
+                    <div class="form-group">
+                        <label for="name">名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">描述</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveGroupBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 主机组详情模态框 -->
+<div class="modal fade" id="groupDetailModal" tabindex="-1" role="dialog" aria-labelledby="groupDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="groupDetailModalLabel">主机组详情</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="groupDetailContent">
+                    <!-- 主机组详情将通过AJAX加载 -->
+                </div>
+                <div class="mt-4">
+                    <h5>主机列表</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>主机名</th>
+                                    <th>IP地址</th>
+                                    <th>状态</th>
+                                    <th>系统类型</th>
+                                </tr>
+                            </thead>
+                            <tbody id="groupHostsTableBody">
+                                <!-- 主机组内的主机列表将通过AJAX加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="editGroupBtn">编辑</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">确认删除</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除选中的主机组吗？此操作不可恢复。</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> 注意：删除主机组不会删除组内的主机。
+                </div>
+                <div id="deleteGroupList">
+                    <!-- 要删除的主机组列表 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(function () {
+        // 加载主机组列表
+        loadGroups();
+        
+        // 搜索按钮点击事件
+        $('#searchBtn').click(function() {
+            loadGroups();
+        });
+        
+        // 全选/取消全选
+        $('#selectAll').change(function() {
+            $('.group-checkbox').prop('checked', $(this).prop('checked'));
+        });
+        
+        // 保存主机组按钮点击事件
+        $('#saveGroupBtn').click(function() {
+            saveGroup();
+        });
+        
+        // 确认删除按钮点击事件
+        $('#confirmDeleteBtn').click(function() {
+            deleteSelectedGroups();
+        });
+    });
+    
+    // 加载主机组列表
+    function loadGroups(page = 1) {
+        // 获取搜索条件
+        var search = $('#searchInput').val();
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/groups/',
+        //     type: 'GET',
+        //     data: {
+        //         search: search,
+        //         page: page
+        //     },
+        //     success: function(response) {
+        //         renderGroupTable(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载主机组列表失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            count: 15,
+            next: page < 2 ? '/hosts/api/groups/?page=' + (page + 1) : null,
+            previous: page > 1 ? '/hosts/api/groups/?page=' + (page - 1) : null,
+            results: [
+                {
+                    id: 1,
+                    name: '生产环境',
+                    description: '生产环境服务器组',
+                    host_count: 12,
+                    created_by: '管理员',
+                    created_at: '2023-06-01T09:00:00Z'
+                },
+                {
+                    id: 2,
+                    name: 'Web服务器',
+                    description: '运行Web服务的服务器组',
+                    host_count: 5,
+                    created_by: '管理员',
+                    created_at: '2023-06-01T09:30:00Z'
+                },
+                {
+                    id: 3,
+                    name: '数据库服务器',
+                    description: '运行数据库的服务器组',
+                    host_count: 3,
+                    created_by: '管理员',
+                    created_at: '2023-06-01T10:00:00Z'
+                },
+                {
+                    id: 4,
+                    name: '应用服务器',
+                    description: '运行应用程序的服务器组',
+                    host_count: 4,
+                    created_by: '管理员',
+                    created_at: '2023-06-01T10:30:00Z'
+                },
+                {
+                    id: 5,
+                    name: '测试环境',
+                    description: '测试环境服务器组',
+                    host_count: 8,
+                    created_by: '管理员',
+                    created_at: '2023-06-02T09:00:00Z'
+                }
+            ]
+        };
+        
+        renderGroupTable(mockData, page);
+    }
+    
+    // 渲染主机组表格
+    function renderGroupTable(data, currentPage) {
+        var tableBody = $('#groupTableBody');
+        tableBody.empty();
+        
+        // 渲染主机组数据
+        $.each(data.results, function(index, group) {
+            var createdAt = new Date(group.created_at).toLocaleString();
+            
+            var row = '<tr>' +
+                '<td><input type="checkbox" class="group-checkbox" value="' + group.id + '"></td>' +
+                '<td>' + group.name + '</td>' +
+                '<td>' + (group.description || '无') + '</td>' +
+                '<td>' + group.host_count + '</td>' +
+                '<td>' + group.created_by + '</td>' +
+                '<td>' + createdAt + '</td>' +
+                '<td>' +
+                    '<button type="button" class="btn btn-sm btn-info view-group" data-id="' + group.id + '">' +
+                        '<i class="fas fa-eye"></i>' +
+                    '</button> ' +
+                    '<button type="button" class="btn btn-sm btn-primary edit-group" data-id="' + group.id + '">' +
+                        '<i class="fas fa-edit"></i>' +
+                    '</button> ' +
+                    '<button type="button" class="btn btn-sm btn-danger delete-group" data-id="' + group.id + '" data-name="' + group.name + '">' +
+                        '<i class="fas fa-trash"></i>' +
+                    '</button>' +
+                '</td>' +
+            '</tr>';
+            
+            tableBody.append(row);
+        });
+        
+        // 更新分页信息
+        var start = (currentPage - 1) * 10 + 1;
+        var end = start + data.results.length - 1;
+        $('#paginationInfo').text('显示第 ' + start + ' 至 ' + end + ' 项，共 ' + data.count + ' 项');
+        
+        // 更新分页控件
+        renderPagination(data, currentPage);
+        
+        // 绑定查看、编辑和删除按钮事件
+        bindGroupActions();
+    }
+    
+    // 渲染分页控件
+    function renderPagination(data, currentPage) {
+        var pagination = $('#pagination ul');
+        pagination.empty();
+        
+        // 上一页按钮
+        var prevDisabled = !data.previous ? 'disabled' : '';
+        pagination.append(
+            '<li class="paginate_button page-item previous ' + prevDisabled + '">' +
+                '<a href="#" class="page-link" data-page="' + (currentPage - 1) + '">上一页</a>' +
+            '</li>'
+        );
+        
+        // 页码按钮
+        var totalPages = Math.ceil(data.count / 10);
+        for (var i = 1; i <= totalPages; i++) {
+            var active = i === currentPage ? 'active' : '';
+            pagination.append(
+                '<li class="paginate_button page-item ' + active + '">' +
+                    '<a href="#" class="page-link" data-page="' + i + '">' + i + '</a>' +
+                '</li>'
+            );
+        }
+        
+        // 下一页按钮
+        var nextDisabled = !data.next ? 'disabled' : '';
+        pagination.append(
+            '<li class="paginate_button page-item next ' + nextDisabled + '">' +
+                '<a href="#" class="page-link" data-page="' + (currentPage + 1) + '">下一页</a>' +
+            '</li>'
+        );
+        
+        // 绑定分页按钮点击事件
+        $('.page-link').click(function(e) {
+            e.preventDefault();
+            if (!$(this).parent().hasClass('disabled')) {
+                var page = $(this).data('page');
+                loadGroups(page);
+            }
+        });
+    }
+    
+    // 绑定主机组操作按钮事件
+    function bindGroupActions() {
+        // 查看主机组详情
+        $('.view-group').click(function() {
+            var groupId = $(this).data('id');
+            viewGroupDetail(groupId);
+        });
+        
+        // 编辑主机组
+        $('.edit-group').click(function() {
+            var groupId = $(this).data('id');
+            editGroup(groupId);
+        });
+        
+        // 删除主机组
+        $('.delete-group').click(function() {
+            var groupId = $(this).data('id');
+            var groupName = $(this).data('name');
+            showDeleteConfirm([{id: groupId, name: groupName}]);
+        });
+    }
+    
+    // 保存主机组
+    function saveGroup() {
+        // 获取表单数据
+        var formData = {
+            name: $('#name').val(),
+            description: $('#description').val()
+        };
+        
+        // 表单验证
+        if (!formData.name) {
+            toastr.error('主机组名称不能为空');
+            return;
+        }
+        
+        // 判断是新增还是编辑
+        var groupId = $('#saveGroupBtn').data('id');
+        var url = '/hosts/api/groups/';
+        var method = 'POST';
+        
+        if (groupId) {
+            url += groupId + '/';
+            method = 'PUT';
+        }
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: url,
+        //     type: method,
+        //     data: JSON.stringify(formData),
+        //     contentType: 'application/json',
+        //     success: function(response) {
+        //         $('#addGroupModal').modal('hide');
+        //         toastr.success(groupId ? '主机组更新成功' : '主机组添加成功');
+        //         loadGroups();
+        //     },
+        //     error: function(error) {
+        //         toastr.error(groupId ? '主机组更新失败' : '主机组添加失败');
+        //     }
+        // });
+        
+        // 模拟成功响应
+        $('#addGroupModal').modal('hide');
+        toastr.success(groupId ? '主机组更新成功' : '主机组添加成功');
+        loadGroups();
+    }
+    
+    // 查看主机组详情
+    function viewGroupDetail(groupId) {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/groups/' + groupId + '/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderGroupDetail(response);
+        //         loadGroupHosts(groupId);
+        //         $('#groupDetailModal').modal('show');
+        //     },
+        //     error: function(error) {
+        //         toastr.error('获取主机组详情失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            id: groupId,
+            name: '生产环境',
+            description: '生产环境服务器组',
+            host_count: 12,
+            created_by: '管理员',
+            created_at: '2023-06-01T09:00:00Z'
+        };
+        
+        renderGroupDetail(mockData);
+        loadGroupHosts(groupId);
+        $('#groupDetailModal').modal('show');
+    }
+    
+    // 渲染主机组详情
+    function renderGroupDetail(group) {
+        var createdAt = new Date(group.created_at).toLocaleString();
+        
+        var detailHtml = '<div class="row">' +
+            '<div class="col-md-6">' +
+                '<p><strong>名称：</strong>' + group.name + '</p>' +
+                '<p><strong>主机数量：</strong>' + group.host_count + '</p>' +
+            '</div>' +
+            '<div class="col-md-6">' +
+                '<p><strong>创建人：</strong>' + group.created_by + '</p>' +
+                '<p><strong>创建时间：</strong>' + createdAt + '</p>' +
+            '</div>' +
+        '</div>' +
+        '<div class="row mt-3">' +
+            '<div class="col-12">' +
+                '<p><strong>描述：</strong></p>' +
+                '<p>' + (group.description || '无') + '</p>' +
+            '</div>' +
+        '</div>';
+        
+        $('#groupDetailContent').html(detailHtml);
+        
+        // 设置编辑按钮的主机组ID
+        $('#editGroupBtn').data('id', group.id);
+    }
+    
+    // 加载主机组内的主机列表
+    function loadGroupHosts(groupId) {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/groups/' + groupId + '/hosts/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderGroupHosts(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载主机组内主机列表失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [
+            {
+                id: 1,
+                hostname: 'web-server-01',
+                ip_address: '192.168.1.101',
+                status: 'online',
+                os_type: 'linux'
+            },
+            {
+                id: 2,
+                hostname: 'db-server-01',
+                ip_address: '192.168.1.102',
+                status: 'online',
+                os_type: 'linux'
+            },
+            {
+                id: 3,
+                hostname: 'app-server-01',
+                ip_address: '192.168.1.103',
+                status: 'offline',
+                os_type: 'linux'
+            }
+        ];
+        
+        renderGroupHosts(mockData);
+    }
+    
+    // 渲染主机组内的主机列表
+    function renderGroupHosts(hosts) {
+        var tableBody = $('#groupHostsTableBody');
+        tableBody.empty();
+        
+        if (hosts.length === 0) {
+            tableBody.append('<tr><td colspan="4" class="text-center">该主机组内暂无主机</td></tr>');
+            return;
+        }
+        
+        // 渲染主机数据
+        $.each(hosts, function(index, host) {
+            var statusClass = '';
+            var statusText = '';
+            
+            switch(host.status) {
+                case 'online':
+                    statusClass = 'badge-success';
+                    statusText = '在线';
+                    break;
+                case 'offline':
+                    statusClass = 'badge-danger';
+                    statusText = '离线';
+                    break;
+                default:
+                    statusClass = 'badge-secondary';
+                    statusText = '未知';
+            }
+            
+            var row = '<tr>' +
+                '<td>' + host.hostname + '</td>' +
+                '<td>' + host.ip_address + '</td>' +
+                '<td><span class="badge ' + statusClass + '">' + statusText + '</span></td>' +
+                '<td>' + (host.os_type === 'linux' ? 'Linux' : (host.os_type === 'windows' ? 'Windows' : '其他')) + '</td>' +
+            '</tr>';
+            
+            tableBody.append(row);
+        });
+    }
+    
+    // 编辑主机组
+    function editGroup(groupId) {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/groups/' + groupId + '/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         fillGroupForm(response);
+        //         $('#addGroupModalLabel').text('编辑主机组');
+        //         $('#addGroupModal').modal('show');
+        //     },
+        //     error: function(error) {
+        //         toastr.error('获取主机组信息失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            id: groupId,
+            name: '生产环境',
+            description: '生产环境服务器组'
+        };
+        
+        fillGroupForm(mockData);
+        $('#addGroupModalLabel').text('编辑主机组');
+        $('#addGroupModal').modal('show');
+    }
+    
+    // 填充主机组表单
+    function fillGroupForm(group) {
+        $('#name').val(group.name);
+        $('#description').val(group.description);
+        
+        // 设置保存按钮的主机组ID
+        $('#saveGroupBtn').data('id', group.id);
+    }
+    
+    // 显示删除确认对话框
+    function showDeleteConfirm(groups) {
+        var groupListHtml = '<ul>';
+        $.each(groups, function(index, group) {
+            groupListHtml += '<li>' + group.name + '</li>';
+        });
+        groupListHtml += '</ul>';
+        
+        $('#deleteGroupList').html(groupListHtml);
+        $('#confirmDeleteBtn').data('groups', groups.map(function(group) { return group.id; }));
+        $('#deleteConfirmModal').modal('show');
+    }
+    
+    // 删除选中的主机组
+    function deleteSelectedGroups() {
+        var groupIds = $('#confirmDeleteBtn').data('groups');
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/groups/batch-delete/',
+        //     type: 'POST',
+        //     data: JSON.stringify({group_ids: groupIds}),
+        //     contentType: 'application/json',
+        //     success: function(response) {
+        //         $('#deleteConfirmModal').modal('hide');
+        //         toastr.success('主机组删除成功');
+        //         loadGroups();
+        //     },
+        //     error: function(error) {
+        //         toastr.error('主机组删除失败');
+        //     }
+        // });
+        
+        // 模拟成功响应
+        $('#deleteConfirmModal').modal('hide');
+        toastr.success('主机组删除成功');
+        loadGroups();
+    }
+</script>
+{% endblock %}

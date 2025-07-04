@@ -1,0 +1,677 @@
+{% extends 'base.html' %}
+
+{% block title %}主机标签管理 - 运维平台{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">主机标签管理</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addTagModal">
+                            <i class="fas fa-plus"></i> 添加标签
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- 搜索框 -->
+                    <div class="row mb-3">
+                        <div class="col-md-6 offset-md-6">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="searchInput" placeholder="搜索标签名称/描述">
+                                <div class="input-group-append">
+                                    <button class="btn btn-default" id="searchBtn">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 标签列表表格 -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px">
+                                        <input type="checkbox" id="selectAll">
+                                    </th>
+                                    <th>名称</th>
+                                    <th>颜色</th>
+                                    <th>描述</th>
+                                    <th>主机数量</th>
+                                    <th>创建人</th>
+                                    <th>创建时间</th>
+                                    <th style="width: 150px">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tagTableBody">
+                                <!-- 标签数据将通过AJAX加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 分页控件 -->
+                    <div class="row mt-3">
+                        <div class="col-sm-12 col-md-5">
+                            <div class="dataTables_info" id="paginationInfo" role="status" aria-live="polite">
+                                显示第 1 至 10 项，共 0 项
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-7">
+                            <div class="dataTables_paginate paging_simple_numbers" id="pagination">
+                                <ul class="pagination">
+                                    <li class="paginate_button page-item previous disabled">
+                                        <a href="#" class="page-link">上一页</a>
+                                    </li>
+                                    <li class="paginate_button page-item active">
+                                        <a href="#" class="page-link">1</a>
+                                    </li>
+                                    <li class="paginate_button page-item next disabled">
+                                        <a href="#" class="page-link">下一页</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加标签模态框 -->
+<div class="modal fade" id="addTagModal" tabindex="-1" role="dialog" aria-labelledby="addTagModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTagModalLabel">添加标签</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addTagForm">
+                    <div class="form-group">
+                        <label for="name">名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="color">颜色</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="color" name="color" value="#3498db">
+                            <div class="input-group-append">
+                                <span class="input-group-text colorpicker-input-addon"><i></i></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">描述</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveTagBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 标签详情模态框 -->
+<div class="modal fade" id="tagDetailModal" tabindex="-1" role="dialog" aria-labelledby="tagDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tagDetailModalLabel">标签详情</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="tagDetailContent">
+                    <!-- 标签详情将通过AJAX加载 -->
+                </div>
+                <div class="mt-4">
+                    <h5>主机列表</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>主机名</th>
+                                    <th>IP地址</th>
+                                    <th>状态</th>
+                                    <th>系统类型</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tagHostsTableBody">
+                                <!-- 标签关联的主机列表将通过AJAX加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="editTagBtn">编辑</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">确认删除</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除选中的标签吗？此操作不可恢复。</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> 注意：删除标签不会删除关联的主机。
+                </div>
+                <div id="deleteTagList">
+                    <!-- 要删除的标签列表 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(function () {
+        // 初始化颜色选择器
+        $('#color').colorpicker();
+        
+        // 加载标签列表
+        loadTags();
+        
+        // 搜索按钮点击事件
+        $('#searchBtn').click(function() {
+            loadTags();
+        });
+        
+        // 全选/取消全选
+        $('#selectAll').change(function() {
+            $('.tag-checkbox').prop('checked', $(this).prop('checked'));
+        });
+        
+        // 保存标签按钮点击事件
+        $('#saveTagBtn').click(function() {
+            saveTag();
+        });
+        
+        // 确认删除按钮点击事件
+        $('#confirmDeleteBtn').click(function() {
+            deleteSelectedTags();
+        });
+    });
+    
+    // 加载标签列表
+    function loadTags(page = 1) {
+        // 获取搜索条件
+        var search = $('#searchInput').val();
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/tags/',
+        //     type: 'GET',
+        //     data: {
+        //         search: search,
+        //         page: page
+        //     },
+        //     success: function(response) {
+        //         renderTagTable(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载标签列表失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            count: 12,
+            next: page < 2 ? '/hosts/api/tags/?page=' + (page + 1) : null,
+            previous: page > 1 ? '/hosts/api/tags/?page=' + (page - 1) : null,
+            results: [
+                {
+                    id: 1,
+                    name: 'Nginx',
+                    color: '#3498db',
+                    description: 'Nginx Web服务器',
+                    host_count: 5,
+                    created_by: '管理员',
+                    created_at: '2023-06-01T09:00:00Z'
+                },
+                {
+                    id: 2,
+                    name: 'MySQL',
+                    color: '#2ecc71',
+                    description: 'MySQL数据库服务器',
+                    host_count: 3,
+                    created_by: '管理员',
+                    created_at: '2023-06-01T09:30:00Z'
+                },
+                {
+                    id: 3,
+                    name: 'Java',
+                    color: '#e74c3c',
+                    description: 'Java应用服务器',
+                    host_count: 4,
+                    created_by: '管理员',
+                    created_at: '2023-06-01T10:00:00Z'
+                },
+                {
+                    id: 4,
+                    name: '.NET',
+                    color: '#9b59b6',
+                    description: '.NET应用服务器',
+                    host_count: 2,
+                    created_by: '管理员',
+                    created_at: '2023-06-01T10:30:00Z'
+                },
+                {
+                    id: 5,
+                    name: 'Redis',
+                    color: '#f1c40f',
+                    description: 'Redis缓存服务器',
+                    host_count: 3,
+                    created_by: '管理员',
+                    created_at: '2023-06-02T09:00:00Z'
+                }
+            ]
+        };
+        
+        renderTagTable(mockData, page);
+    }
+    
+    // 渲染标签表格
+    function renderTagTable(data, currentPage) {
+        var tableBody = $('#tagTableBody');
+        tableBody.empty();
+        
+        // 渲染标签数据
+        $.each(data.results, function(index, tag) {
+            var createdAt = new Date(tag.created_at).toLocaleString();
+            
+            var row = '<tr>' +
+                '<td><input type="checkbox" class="tag-checkbox" value="' + tag.id + '"></td>' +
+                '<td>' + tag.name + '</td>' +
+                '<td><span class="badge" style="background-color: ' + tag.color + '; color: white;">' + tag.color + '</span></td>' +
+                '<td>' + (tag.description || '无') + '</td>' +
+                '<td>' + tag.host_count + '</td>' +
+                '<td>' + tag.created_by + '</td>' +
+                '<td>' + createdAt + '</td>' +
+                '<td>' +
+                    '<button type="button" class="btn btn-sm btn-info view-tag" data-id="' + tag.id + '">' +
+                        '<i class="fas fa-eye"></i>' +
+                    '</button> ' +
+                    '<button type="button" class="btn btn-sm btn-primary edit-tag" data-id="' + tag.id + '">' +
+                        '<i class="fas fa-edit"></i>' +
+                    '</button> ' +
+                    '<button type="button" class="btn btn-sm btn-danger delete-tag" data-id="' + tag.id + '" data-name="' + tag.name + '">' +
+                        '<i class="fas fa-trash"></i>' +
+                    '</button>' +
+                '</td>' +
+            '</tr>';
+            
+            tableBody.append(row);
+        });
+        
+        // 更新分页信息
+        var start = (currentPage - 1) * 10 + 1;
+        var end = start + data.results.length - 1;
+        $('#paginationInfo').text('显示第 ' + start + ' 至 ' + end + ' 项，共 ' + data.count + ' 项');
+        
+        // 更新分页控件
+        renderPagination(data, currentPage);
+        
+        // 绑定查看、编辑和删除按钮事件
+        bindTagActions();
+    }
+    
+    // 渲染分页控件
+    function renderPagination(data, currentPage) {
+        var pagination = $('#pagination ul');
+        pagination.empty();
+        
+        // 上一页按钮
+        var prevDisabled = !data.previous ? 'disabled' : '';
+        pagination.append(
+            '<li class="paginate_button page-item previous ' + prevDisabled + '">' +
+                '<a href="#" class="page-link" data-page="' + (currentPage - 1) + '">上一页</a>' +
+            '</li>'
+        );
+        
+        // 页码按钮
+        var totalPages = Math.ceil(data.count / 10);
+        for (var i = 1; i <= totalPages; i++) {
+            var active = i === currentPage ? 'active' : '';
+            pagination.append(
+                '<li class="paginate_button page-item ' + active + '">' +
+                    '<a href="#" class="page-link" data-page="' + i + '">' + i + '</a>' +
+                '</li>'
+            );
+        }
+        
+        // 下一页按钮
+        var nextDisabled = !data.next ? 'disabled' : '';
+        pagination.append(
+            '<li class="paginate_button page-item next ' + nextDisabled + '">' +
+                '<a href="#" class="page-link" data-page="' + (currentPage + 1) + '">下一页</a>' +
+            '</li>'
+        );
+        
+        // 绑定分页按钮点击事件
+        $('.page-link').click(function(e) {
+            e.preventDefault();
+            if (!$(this).parent().hasClass('disabled')) {
+                var page = $(this).data('page');
+                loadTags(page);
+            }
+        });
+    }
+    
+    // 绑定标签操作按钮事件
+    function bindTagActions() {
+        // 查看标签详情
+        $('.view-tag').click(function() {
+            var tagId = $(this).data('id');
+            viewTagDetail(tagId);
+        });
+        
+        // 编辑标签
+        $('.edit-tag').click(function() {
+            var tagId = $(this).data('id');
+            editTag(tagId);
+        });
+        
+        // 删除标签
+        $('.delete-tag').click(function() {
+            var tagId = $(this).data('id');
+            var tagName = $(this).data('name');
+            showDeleteConfirm([{id: tagId, name: tagName}]);
+        });
+    }
+    
+    // 保存标签
+    function saveTag() {
+        // 获取表单数据
+        var formData = {
+            name: $('#name').val(),
+            color: $('#color').val(),
+            description: $('#description').val()
+        };
+        
+        // 表单验证
+        if (!formData.name) {
+            toastr.error('标签名称不能为空');
+            return;
+        }
+        
+        // 判断是新增还是编辑
+        var tagId = $('#saveTagBtn').data('id');
+        var url = '/hosts/api/tags/';
+        var method = 'POST';
+        
+        if (tagId) {
+            url += tagId + '/';
+            method = 'PUT';
+        }
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: url,
+        //     type: method,
+        //     data: JSON.stringify(formData),
+        //     contentType: 'application/json',
+        //     success: function(response) {
+        //         $('#addTagModal').modal('hide');
+        //         toastr.success(tagId ? '标签更新成功' : '标签添加成功');
+        //         loadTags();
+        //     },
+        //     error: function(error) {
+        //         toastr.error(tagId ? '标签更新失败' : '标签添加失败');
+        //     }
+        // });
+        
+        // 模拟成功响应
+        $('#addTagModal').modal('hide');
+        toastr.success(tagId ? '标签更新成功' : '标签添加成功');
+        loadTags();
+    }
+    
+    // 查看标签详情
+    function viewTagDetail(tagId) {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/tags/' + tagId + '/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderTagDetail(response);
+        //         loadTagHosts(tagId);
+        //         $('#tagDetailModal').modal('show');
+        //     },
+        //     error: function(error) {
+        //         toastr.error('获取标签详情失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            id: tagId,
+            name: 'Nginx',
+            color: '#3498db',
+            description: 'Nginx Web服务器',
+            host_count: 5,
+            created_by: '管理员',
+            created_at: '2023-06-01T09:00:00Z'
+        };
+        
+        renderTagDetail(mockData);
+        loadTagHosts(tagId);
+        $('#tagDetailModal').modal('show');
+    }
+    
+    // 渲染标签详情
+    function renderTagDetail(tag) {
+        var createdAt = new Date(tag.created_at).toLocaleString();
+        
+        var detailHtml = '<div class="row">' +
+            '<div class="col-md-6">' +
+                '<p><strong>名称：</strong>' + tag.name + '</p>' +
+                '<p><strong>颜色：</strong><span class="badge" style="background-color: ' + tag.color + '; color: white;">' + tag.color + '</span></p>' +
+                '<p><strong>主机数量：</strong>' + tag.host_count + '</p>' +
+            '</div>' +
+            '<div class="col-md-6">' +
+                '<p><strong>创建人：</strong>' + tag.created_by + '</p>' +
+                '<p><strong>创建时间：</strong>' + createdAt + '</p>' +
+            '</div>' +
+        '</div>' +
+        '<div class="row mt-3">' +
+            '<div class="col-12">' +
+                '<p><strong>描述：</strong></p>' +
+                '<p>' + (tag.description || '无') + '</p>' +
+            '</div>' +
+        '</div>';
+        
+        $('#tagDetailContent').html(detailHtml);
+        
+        // 设置编辑按钮的标签ID
+        $('#editTagBtn').data('id', tag.id);
+    }
+    
+    // 加载标签关联的主机列表
+    function loadTagHosts(tagId) {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/tags/' + tagId + '/hosts/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderTagHosts(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载标签关联主机列表失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [
+            {
+                id: 1,
+                hostname: 'web-server-01',
+                ip_address: '192.168.1.101',
+                status: 'online',
+                os_type: 'linux'
+            },
+            {
+                id: 2,
+                hostname: 'web-server-02',
+                ip_address: '192.168.1.102',
+                status: 'online',
+                os_type: 'linux'
+            },
+            {
+                id: 3,
+                hostname: 'web-server-03',
+                ip_address: '192.168.1.103',
+                status: 'offline',
+                os_type: 'linux'
+            }
+        ];
+        
+        renderTagHosts(mockData);
+    }
+    
+    // 渲染标签关联的主机列表
+    function renderTagHosts(hosts) {
+        var tableBody = $('#tagHostsTableBody');
+        tableBody.empty();
+        
+        if (hosts.length === 0) {
+            tableBody.append('<tr><td colspan="4" class="text-center">该标签下暂无主机</td></tr>');
+            return;
+        }
+        
+        // 渲染主机数据
+        $.each(hosts, function(index, host) {
+            var statusClass = '';
+            var statusText = '';
+            
+            switch(host.status) {
+                case 'online':
+                    statusClass = 'badge-success';
+                    statusText = '在线';
+                    break;
+                case 'offline':
+                    statusClass = 'badge-danger';
+                    statusText = '离线';
+                    break;
+                default:
+                    statusClass = 'badge-secondary';
+                    statusText = '未知';
+            }
+            
+            var row = '<tr>' +
+                '<td>' + host.hostname + '</td>' +
+                '<td>' + host.ip_address + '</td>' +
+                '<td><span class="badge ' + statusClass + '">' + statusText + '</span></td>' +
+                '<td>' + (host.os_type === 'linux' ? 'Linux' : (host.os_type === 'windows' ? 'Windows' : '其他')) + '</td>' +
+            '</tr>';
+            
+            tableBody.append(row);
+        });
+    }
+    
+    // 编辑标签
+    function editTag(tagId) {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/tags/' + tagId + '/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         fillTagForm(response);
+        //         $('#addTagModalLabel').text('编辑标签');
+        //         $('#addTagModal').modal('show');
+        //     },
+        //     error: function(error) {
+        //         toastr.error('获取标签信息失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            id: tagId,
+            name: 'Nginx',
+            color: '#3498db',
+            description: 'Nginx Web服务器'
+        };
+        
+        fillTagForm(mockData);
+        $('#addTagModalLabel').text('编辑标签');
+        $('#addTagModal').modal('show');
+    }
+    
+    // 填充标签表单
+    function fillTagForm(tag) {
+        $('#name').val(tag.name);
+        $('#color').val(tag.color).trigger('change');
+        $('#description').val(tag.description);
+        
+        // 设置保存按钮的标签ID
+        $('#saveTagBtn').data('id', tag.id);
+    }
+    
+    // 显示删除确认对话框
+    function showDeleteConfirm(tags) {
+        var tagListHtml = '<ul>';
+        $.each(tags, function(index, tag) {
+            tagListHtml += '<li>' + tag.name + '</li>';
+        });
+        tagListHtml += '</ul>';
+        
+        $('#deleteTagList').html(tagListHtml);
+        $('#confirmDeleteBtn').data('tags', tags.map(function(tag) { return tag.id; }));
+        $('#deleteConfirmModal').modal('show');
+    }
+    
+    // 删除选中的标签
+    function deleteSelectedTags() {
+        var tagIds = $('#confirmDeleteBtn').data('tags');
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/tags/batch-delete/',
+        //     type: 'POST',
+        //     data: JSON.stringify({tag_ids: tagIds}),
+        //     contentType: 'application/json',
+        //     success: function(response) {
+        //         $('#deleteConfirmModal').modal('hide');
+        //         toastr.success('标签删除成功');
+        //         loadTags();
+        //     },
+        //     error: function(error) {
+        //         toastr.error('标签删除失败');
+        //     }
+        // });
+        
+        // 模拟成功响应
+        $('#deleteConfirmModal').modal('hide');
+        toastr.success('标签删除成功');
+        loadTags();
+    }
+</script>
+{% endblock %}

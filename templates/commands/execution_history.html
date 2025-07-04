@@ -1,0 +1,668 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}命令执行历史{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mt-4 mb-4">命令执行历史</h1>
+    
+    <!-- 过滤器 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="filter-form" class="row g-3">
+                <div class="col-md-3">
+                    <label for="filter-name" class="form-label">任务名称</label>
+                    <input type="text" class="form-control" id="filter-name" name="name" placeholder="输入任务名称">
+                </div>
+                <div class="col-md-2">
+                    <label for="filter-type" class="form-label">执行类型</label>
+                    <select class="form-select" id="filter-type" name="execution_type">
+                        <option value="">全部</option>
+                        <option value="ansible">Ansible</option>
+                        <option value="shell">Shell</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="filter-status" class="form-label">状态</label>
+                    <select class="form-select" id="filter-status" name="status">
+                        <option value="">全部</option>
+                        <option value="pending">等待中</option>
+                        <option value="running">执行中</option>
+                        <option value="completed">已完成</option>
+                        <option value="failed">失败</option>
+                        <option value="canceled">已取消</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filter-executor" class="form-label">执行人</label>
+                    <input type="text" class="form-control" id="filter-executor" name="executed_by" placeholder="输入执行人">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> 搜索
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 执行历史列表 -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>任务名称</th>
+                            <th>执行类型</th>
+                            <th>目标主机</th>
+                            <th>状态</th>
+                            <th>执行人</th>
+                            <th>开始时间</th>
+                            <th>结束时间</th>
+                            <th>耗时</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for execution in executions %}
+                        <tr>
+                            <td>{{ execution.id }}</td>
+                            <td>{{ execution.name }}</td>
+                            <td>
+                                {% if execution.execution_type == 'ansible' %}
+                                <span class="badge bg-success">Ansible</span>
+                                {% else %}
+                                <span class="badge bg-primary">Shell</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ execution.target_hosts|length }} 台主机</td>
+                            <td>
+                                {% if execution.status == 'pending' %}
+                                <span class="badge bg-secondary">等待中</span>
+                                {% elif execution.status == 'running' %}
+                                <span class="badge bg-info">执行中</span>
+                                {% elif execution.status == 'completed' %}
+                                <span class="badge bg-success">已完成</span>
+                                {% elif execution.status == 'failed' %}
+                                <span class="badge bg-danger">失败</span>
+                                {% elif execution.status == 'canceled' %}
+                                <span class="badge bg-warning">已取消</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ execution.executed_by.username }}</td>
+                            <td>{{ execution.start_time|date:"Y-m-d H:i:s" }}</td>
+                            <td>
+                                {% if execution.end_time %}
+                                {{ execution.end_time|date:"Y-m-d H:i:s" }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if execution.end_time %}
+                                {{ execution.duration }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary btn-view-execution" data-id="{{ execution.id }}">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    {% if execution.status == 'running' or execution.status == 'pending' %}
+                                    <button type="button" class="btn btn-sm btn-outline-warning btn-cancel-execution" data-id="{{ execution.id }}">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if execution.status == 'failed' or execution.status == 'completed' %}
+                                    <button type="button" class="btn btn-sm btn-outline-success btn-retry-execution" data-id="{{ execution.id }}">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center">暂无执行历史数据</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分页 -->
+            {% if executions.has_other_pages %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mt-4">
+                    {% if executions.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">&laquo; 首页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ executions.previous_page_number }}">上一页</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo; 首页</span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">上一页</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% for i in executions.paginator.page_range %}
+                        {% if executions.number == i %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ i }}</span>
+                        </li>
+                        {% elif i > executions.number|add:'-3' and i < executions.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if executions.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ executions.next_page_number }}">下一页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ executions.paginator.num_pages }}">末页 &raquo;</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">下一页</span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">末页 &raquo;</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 查看执行详情模态框 -->
+<div class="modal fade" id="viewExecutionModal" tabindex="-1" aria-labelledby="viewExecutionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewExecutionModalLabel">执行详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 执行基本信息 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">基本信息</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">任务名称</label>
+                                    <p id="view-execution-name" class="form-control-plaintext"></p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">执行类型</label>
+                                    <p id="view-execution-type" class="form-control-plaintext"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">执行人</label>
+                                    <p id="view-execution-executor" class="form-control-plaintext"></p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">状态</label>
+                                    <p id="view-execution-status" class="form-control-plaintext"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">开始时间</label>
+                                    <p id="view-execution-start" class="form-control-plaintext"></p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">结束时间</label>
+                                    <p id="view-execution-end" class="form-control-plaintext"></p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">耗时</label>
+                                    <p id="view-execution-duration" class="form-control-plaintext"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 命令内容 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">命令内容</h6>
+                    </div>
+                    <div class="card-body">
+                        <pre id="view-execution-command" class="border p-3 bg-light" style="max-height: 300px; overflow-y: auto;"></pre>
+                    </div>
+                </div>
+                
+                <!-- 执行参数 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">执行参数</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">并发数</label>
+                                    <p id="view-execution-concurrency" class="form-control-plaintext"></p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">超时(秒)</label>
+                                    <p id="view-execution-timeout" class="form-control-plaintext"></p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">失败策略</label>
+                                    <p id="view-execution-failure-policy" class="form-control-plaintext"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 目标主机 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">目标主机</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>主机名</th>
+                                        <th>IP地址</th>
+                                        <th>状态</th>
+                                        <th>开始时间</th>
+                                        <th>结束时间</th>
+                                        <th>耗时</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="view-execution-hosts">
+                                    <!-- 主机列表将通过JavaScript填充 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 执行日志 -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">执行日志</h6>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-refresh-logs">
+                                <i class="bi bi-arrow-repeat"></i> 刷新
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-download-logs">
+                                <i class="bi bi-download"></i> 下载
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <select class="form-select" id="log-host-filter">
+                                <option value="all">所有主机</option>
+                                <!-- 主机选项将通过JavaScript填充 -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <select class="form-select" id="log-level-filter">
+                                <option value="all">所有级别</option>
+                                <option value="info">信息</option>
+                                <option value="warning">警告</option>
+                                <option value="error">错误</option>
+                                <option value="debug">调试</option>
+                            </select>
+                        </div>
+                        <div class="border p-3 bg-light" style="max-height: 400px; overflow-y: auto;">
+                            <pre id="view-execution-logs" class="mb-0"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                {% if execution.status == 'failed' or execution.status == 'completed' %}
+                <button type="button" class="btn btn-success" id="btn-retry-viewed-execution">重新执行</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 取消执行确认模态框 -->
+<div class="modal fade" id="cancelExecutionModal" tabindex="-1" aria-labelledby="cancelExecutionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelExecutionModalLabel">确认取消</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要取消执行任务 <strong id="cancel-execution-name"></strong> 吗？</p>
+                <input type="hidden" id="cancel-execution-id">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-warning" id="btn-confirm-cancel">确认取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // 查看执行详情
+        $('.btn-view-execution').on('click', function() {
+            let executionId = $(this).data('id');
+            
+            // 通过AJAX获取执行详情
+            // 这里使用假数据示例
+            let executionData = {
+                id: executionId,
+                name: '示例任务 ' + executionId,
+                execution_type: executionId % 2 === 0 ? 'ansible' : 'shell',
+                status: ['pending', 'running', 'completed', 'failed', 'canceled'][executionId % 5],
+                executed_by: '管理员',
+                start_time: '2023-06-10 14:30:00',
+                end_time: executionId % 5 !== 1 ? '2023-06-10 14:35:00' : null,
+                duration: '5分钟',
+                command: executionId % 2 === 0 ? 
+                    `---\n- hosts: all\n  tasks:\n    - name: 安装Nginx\n      apt:\n        name: nginx\n        state: present\n        update_cache: yes\n      become: yes` : 
+                    `#!/bin/bash\n# 系统信息收集脚本\necho "系统版本信息:"\ncat /etc/os-release\n\necho "\nCPU信息:"\ncat /proc/cpuinfo | grep "model name" | head -1`,
+                parameters: {
+                    concurrency: 5,
+                    timeout: 300,
+                    failure_policy: 'continue'
+                },
+                hosts: [
+                    { hostname: 'server1', ip: '192.168.1.101', status: 'completed', start_time: '2023-06-10 14:30:00', end_time: '2023-06-10 14:32:00', duration: '2分钟' },
+                    { hostname: 'server2', ip: '192.168.1.102', status: 'completed', start_time: '2023-06-10 14:30:00', end_time: '2023-06-10 14:33:00', duration: '3分钟' },
+                    { hostname: 'server3', ip: '192.168.1.103', status: 'failed', start_time: '2023-06-10 14:30:00', end_time: '2023-06-10 14:31:00', duration: '1分钟' }
+                ],
+                logs: [
+                    { host: 'server1', level: 'info', message: '开始执行命令', timestamp: '2023-06-10 14:30:00' },
+                    { host: 'server1', level: 'info', message: '命令执行成功', timestamp: '2023-06-10 14:32:00' },
+                    { host: 'server2', level: 'info', message: '开始执行命令', timestamp: '2023-06-10 14:30:00' },
+                    { host: 'server2', level: 'info', message: '命令执行成功', timestamp: '2023-06-10 14:33:00' },
+                    { host: 'server3', level: 'info', message: '开始执行命令', timestamp: '2023-06-10 14:30:00' },
+                    { host: 'server3', level: 'error', message: '命令执行失败: 权限不足', timestamp: '2023-06-10 14:31:00' }
+                ]
+            };
+            
+            // 填充基本信息
+            $('#view-execution-name').text(executionData.name);
+            $('#view-execution-type').text(executionData.execution_type === 'ansible' ? 'Ansible' : 'Shell');
+            $('#view-execution-executor').text(executionData.executed_by);
+            
+            // 设置状态
+            let statusText = '';
+            let statusClass = '';
+            switch (executionData.status) {
+                case 'pending':
+                    statusText = '等待中';
+                    statusClass = 'text-secondary';
+                    break;
+                case 'running':
+                    statusText = '执行中';
+                    statusClass = 'text-info';
+                    break;
+                case 'completed':
+                    statusText = '已完成';
+                    statusClass = 'text-success';
+                    break;
+                case 'failed':
+                    statusText = '失败';
+                    statusClass = 'text-danger';
+                    break;
+                case 'canceled':
+                    statusText = '已取消';
+                    statusClass = 'text-warning';
+                    break;
+            }
+            $('#view-execution-status').html(`<span class="${statusClass}">${statusText}</span>`);
+            
+            // 填充时间信息
+            $('#view-execution-start').text(executionData.start_time);
+            $('#view-execution-end').text(executionData.end_time || '-');
+            $('#view-execution-duration').text(executionData.duration || '-');
+            
+            // 填充命令内容
+            $('#view-execution-command').text(executionData.command);
+            
+            // 填充执行参数
+            $('#view-execution-concurrency').text(executionData.parameters.concurrency);
+            $('#view-execution-timeout').text(executionData.parameters.timeout);
+            $('#view-execution-failure-policy').text(executionData.parameters.failure_policy === 'continue' ? '继续执行' : '中止执行');
+            
+            // 填充主机列表
+            let hostsHtml = '';
+            executionData.hosts.forEach(function(host) {
+                let statusClass = '';
+                switch (host.status) {
+                    case 'pending':
+                        statusClass = 'text-secondary';
+                        break;
+                    case 'running':
+                        statusClass = 'text-info';
+                        break;
+                    case 'completed':
+                        statusClass = 'text-success';
+                        break;
+                    case 'failed':
+                        statusClass = 'text-danger';
+                        break;
+                    case 'canceled':
+                        statusClass = 'text-warning';
+                        break;
+                }
+                
+                hostsHtml += `
+                <tr>
+                    <td>${host.hostname}</td>
+                    <td>${host.ip}</td>
+                    <td><span class="${statusClass}">${host.status}</span></td>
+                    <td>${host.start_time}</td>
+                    <td>${host.end_time || '-'}</td>
+                    <td>${host.duration || '-'}</td>
+                </tr>`;
+            });
+            $('#view-execution-hosts').html(hostsHtml);
+            
+            // 填充主机过滤器
+            let hostFilterHtml = '<option value="all">所有主机</option>';
+            executionData.hosts.forEach(function(host) {
+                hostFilterHtml += `<option value="${host.hostname}">${host.hostname} (${host.ip})</option>`;
+            });
+            $('#log-host-filter').html(hostFilterHtml);
+            
+            // 填充日志
+            updateLogs(executionData.logs);
+            
+            // 存储执行ID用于"重新执行"按钮
+            $('#btn-retry-viewed-execution').data('id', executionId);
+            
+            $('#viewExecutionModal').modal('show');
+        });
+        
+        // 更新日志函数
+        function updateLogs(logs, hostFilter = 'all', levelFilter = 'all') {
+            let filteredLogs = logs.filter(function(log) {
+                return (hostFilter === 'all' || log.host === hostFilter) && 
+                       (levelFilter === 'all' || log.level === levelFilter);
+            });
+            
+            let logsHtml = '';
+            filteredLogs.forEach(function(log) {
+                let levelClass = '';
+                switch (log.level) {
+                    case 'info':
+                        levelClass = 'text-info';
+                        break;
+                    case 'warning':
+                        levelClass = 'text-warning';
+                        break;
+                    case 'error':
+                        levelClass = 'text-danger';
+                        break;
+                    case 'debug':
+                        levelClass = 'text-secondary';
+                        break;
+                }
+                
+                logsHtml += `<span class="${levelClass}">[${log.timestamp}] [${log.host}] [${log.level.toUpperCase()}] ${log.message}</span>\n`;
+            });
+            
+            $('#view-execution-logs').html(logsHtml || '暂无日志');
+        }
+        
+        // 日志过滤器变更事件
+        $('#log-host-filter, #log-level-filter').on('change', function() {
+            let hostFilter = $('#log-host-filter').val();
+            let levelFilter = $('#log-level-filter').val();
+            
+            // 这里应该通过AJAX重新获取过滤后的日志
+            // 这里使用假数据示例
+            let logs = [
+                { host: 'server1', level: 'info', message: '开始执行命令', timestamp: '2023-06-10 14:30:00' },
+                { host: 'server1', level: 'info', message: '命令执行成功', timestamp: '2023-06-10 14:32:00' },
+                { host: 'server2', level: 'info', message: '开始执行命令', timestamp: '2023-06-10 14:30:00' },
+                { host: 'server2', level: 'info', message: '命令执行成功', timestamp: '2023-06-10 14:33:00' },
+                { host: 'server3', level: 'info', message: '开始执行命令', timestamp: '2023-06-10 14:30:00' },
+                { host: 'server3', level: 'error', message: '命令执行失败: 权限不足', timestamp: '2023-06-10 14:31:00' }
+            ];
+            
+            updateLogs(logs, hostFilter, levelFilter);
+        });
+        
+        // 刷新日志按钮
+        $('#btn-refresh-logs').on('click', function() {
+            let executionId = $('#btn-retry-viewed-execution').data('id');
+            let hostFilter = $('#log-host-filter').val();
+            let levelFilter = $('#log-level-filter').val();
+            
+            // 这里应该通过AJAX重新获取日志
+            // 这里使用假数据示例
+            let logs = [
+                { host: 'server1', level: 'info', message: '开始执行命令', timestamp: '2023-06-10 14:30:00' },
+                { host: 'server1', level: 'info', message: '命令执行成功', timestamp: '2023-06-10 14:32:00' },
+                { host: 'server2', level: 'info', message: '开始执行命令', timestamp: '2023-06-10 14:30:00' },
+                { host: 'server2', level: 'info', message: '命令执行成功', timestamp: '2023-06-10 14:33:00' },
+                { host: 'server3', level: 'info', message: '开始执行命令', timestamp: '2023-06-10 14:30:00' },
+                { host: 'server3', level: 'error', message: '命令执行失败: 权限不足', timestamp: '2023-06-10 14:31:00' },
+                { host: 'server3', level: 'info', message: '新增日志条目', timestamp: '2023-06-10 14:35:00' }
+            ];
+            
+            updateLogs(logs, hostFilter, levelFilter);
+        });
+        
+        // 下载日志按钮
+        $('#btn-download-logs').on('click', function() {
+            let executionId = $('#btn-retry-viewed-execution').data('id');
+            
+            // 这里应该通过AJAX请求下载日志
+            alert('日志下载功能将在实际环境中实现');
+        });
+        
+        // 重新执行按钮
+        $('#btn-retry-viewed-execution, .btn-retry-execution').on('click', function() {
+            let executionId = $(this).data('id');
+            
+            // 这里应该通过AJAX发送重新执行请求
+            console.log('重新执行:', executionId);
+            
+            // 模拟重新执行成功
+            alert('任务已重新提交执行！');
+            $('#viewExecutionModal').modal('hide');
+            // 刷新页面
+            location.reload();
+        });
+        
+        // 取消执行按钮
+        $('.btn-cancel-execution').on('click', function() {
+            let executionId = $(this).data('id');
+            let executionName = $(this).closest('tr').find('td:nth-child(2)').text();
+            
+            $('#cancel-execution-id').val(executionId);
+            $('#cancel-execution-name').text(executionName);
+            
+            $('#cancelExecutionModal').modal('show');
+        });
+        
+        // 确认取消执行
+        $('#btn-confirm-cancel').on('click', function() {
+            let executionId = $('#cancel-execution-id').val();
+            
+            // 这里应该通过AJAX发送取消执行请求
+            console.log('取消执行:', executionId);
+            
+            // 模拟取消成功
+            alert('任务已取消！');
+            $('#cancelExecutionModal').modal('hide');
+            // 刷新页面
+            location.reload();
+        });
+        
+        // 过滤表单提交
+        $('#filter-form').on('submit', function(e) {
+            e.preventDefault();
+            
+            // 获取表单数据
+            let formData = {
+                name: $('#filter-name').val(),
+                execution_type: $('#filter-type').val(),
+                status: $('#filter-status').val(),
+                executed_by: $('#filter-executor').val()
+            };
+            
+            // 构建查询字符串
+            let queryParams = [];
+            for (let key in formData) {
+                if (formData[key]) {
+                    queryParams.push(key + '=' + encodeURIComponent(formData[key]));
+                }
+            }
+            
+            // 重定向到带有查询参数的当前页面
+            window.location.href = '?' + queryParams.join('&');
+        });
+    });
+</script>
+{% endblock %}

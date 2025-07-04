@@ -1,0 +1,134 @@
+INFO 2025-07-04 11:45:45,722 autoreload 3088 5464 Watching for file changes with StatReloader
+INFO 2025-07-04 14:52:48,347 autoreload 23340 24348 Watching for file changes with StatReloader
+INFO 2025-07-04 14:52:54,935 autoreload 23340 24348 D:\zpj\python\test0603\ops_platform\ops_platform\settings.py changed, reloading.
+INFO 2025-07-04 14:52:56,509 autoreload 16944 9776 Watching for file changes with StatReloader
+INFO 2025-07-04 15:17:19,141 autoreload 14332 19700 Watching for file changes with StatReloader
+INFO 2025-07-04 15:44:46,257 autoreload 34292 29720 Watching for file changes with StatReloader
+WARNING 2025-07-04 15:46:51,921 log 34292 11544 Bad Request: /api/v1/users/
+WARNING 2025-07-04 15:46:51,921 basehttp 34292 11544 "POST /api/v1/users/ HTTP/1.1" 400 89
+INFO 2025-07-04 15:47:50,738 basehttp 34292 11544 "POST /api/v1/users/ HTTP/1.1" 201 753
+INFO 2025-07-04 16:01:27,122 autoreload 34292 29720 D:\zpj\python\test0603\ops_platform\navigation\models.py changed, reloading.
+INFO 2025-07-04 16:01:28,970 autoreload 27352 4056 Watching for file changes with StatReloader
+INFO 2025-07-04 16:03:17,863 autoreload 27352 4056 D:\zpj\python\test0603\ops_platform\ops_platform\urls.py changed, reloading.
+INFO 2025-07-04 16:03:19,246 autoreload 19340 18780 Watching for file changes with StatReloader
+INFO 2025-07-04 16:04:01,785 autoreload 19340 18780 D:\zpj\python\test0603\ops_platform\navigation\admin.py changed, reloading.
+INFO 2025-07-04 16:04:03,562 autoreload 11096 7704 Watching for file changes with StatReloader
+INFO 2025-07-04 16:04:19,582 autoreload 11096 7704 D:\zpj\python\test0603\ops_platform\navigation\apps.py changed, reloading.
+INFO 2025-07-04 16:04:21,026 autoreload 17632 13200 Watching for file changes with StatReloader
+INFO 2025-07-04 16:04:42,149 autoreload 17632 13200 D:\zpj\python\test0603\ops_platform\navigation\__init__.py changed, reloading.
+INFO 2025-07-04 16:04:42,969 autoreload 30708 3340 Watching for file changes with StatReloader
+INFO 2025-07-04 16:39:20,216 autoreload 6468 32872 Watching for file changes with StatReloader
+INFO 2025-07-04 16:44:03,521 autoreload 22632 17136 Watching for file changes with StatReloader
+INFO 2025-07-04 16:46:59,715 autoreload 22632 17136 D:\zpj\python\test0603\ops_platform\ops_platform\settings.py changed, reloading.
+INFO 2025-07-04 16:47:00,658 autoreload 22368 20144 Watching for file changes with StatReloader
+INFO 2025-07-04 16:47:10,682 autoreload 18832 12928 Watching for file changes with StatReloader
+INFO 2025-07-04 16:47:49,577 autoreload 24348 13124 Watching for file changes with StatReloader
+INFO 2025-07-04 16:49:20,627 autoreload 19504 31536 Watching for file changes with StatReloader
+INFO 2025-07-04 16:51:00,377 basehttp 19504 6212 "POST /api/v1/users/ HTTP/1.1" 201 753
+WARNING 2025-07-04 16:58:19,922 log 19504 6212 Unauthorized: /api/v1/users/profile/
+WARNING 2025-07-04 16:58:19,923 basehttp 19504 6212 "GET /api/v1/users/profile/ HTTP/1.1" 401 43
+ERROR 2025-07-04 17:03:26,934 log 19504 6212 Internal Server Error: /api/v1/users/login/
+Traceback (most recent call last):
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\db\backends\utils.py", line 89, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\db\backends\mysql\base.py", line 75, in execute
+    return self.cursor.execute(query, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\MySQLdb\cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\MySQLdb\cursors.py", line 330, in _query
+    db.query(q)
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\MySQLdb\connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+MySQLdb.ProgrammingError: (1146, "Table 'ops_platform.django_session' doesn't exist")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\views\decorators\csrf.py", line 56, in wrapper_view
+    return view_func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\ops_platform\users\views.py", line 84, in login
+    login(request, user)
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\contrib\auth\__init__.py", line 118, in login
+    request.session.cycle_key()
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\contrib\sessions\backends\base.py", line 304, in cycle_key
+    self.create()
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\contrib\sessions\backends\db.py", line 50, in create
+    self._session_key = self._get_new_session_key()
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\contrib\sessions\backends\base.py", line 150, in _get_new_session_key
+    if not self.exists(session_key):
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\contrib\sessions\backends\db.py", line 46, in exists
+    return self.model.objects.filter(session_key=session_key).exists()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\db\models\query.py", line 1241, in exists
+    return self.query.has_results(using=self.db)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\db\models\sql\query.py", line 566, in has_results
+    return compiler.has_results()
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1528, in has_results
+    return bool(self.execute_sql(SINGLE))
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1560, in execute_sql
+    cursor.execute(sql, params)
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\db\backends\utils.py", line 102, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\db\backends\utils.py", line 67, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\db\backends\utils.py", line 80, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\db\backends\utils.py", line 84, in _execute
+    with self.db.wrap_database_errors:
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\db\backends\utils.py", line 89, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\django\db\backends\mysql\base.py", line 75, in execute
+    return self.cursor.execute(query, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\MySQLdb\cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\MySQLdb\cursors.py", line 330, in _query
+    db.query(q)
+  File "D:\zpj\python\test0603\venv\Lib\site-packages\MySQLdb\connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+django.db.utils.ProgrammingError: (1146, "Table 'ops_platform.django_session' doesn't exist")
+ERROR 2025-07-04 17:03:26,942 basehttp 19504 6212 "POST /api/v1/users/login/ HTTP/1.1" 500 204074
+INFO 2025-07-04 17:11:27,574 autoreload 6556 9960 Watching for file changes with StatReloader
+INFO 2025-07-04 17:12:24,894 autoreload 20496 20744 Watching for file changes with StatReloader
+INFO 2025-07-04 17:13:12,250 autoreload 23604 23424 Watching for file changes with StatReloader
+INFO 2025-07-04 17:14:10,594 autoreload 11348 34560 Watching for file changes with StatReloader
+INFO 2025-07-04 17:16:58,834 basehttp 2184 7460 "POST /api/v1/users/login/ HTTP/1.1" 200 529
+INFO 2025-07-04 17:19:29,589 basehttp 2184 7460 "GET /api/v1/users/profile HTTP/1.1" 301 0
+INFO 2025-07-04 17:19:31,630 basehttp 2184 10212 "GET /api/v1/users/profile/ HTTP/1.1" 200 271
+INFO 2025-07-04 17:20:03,683 basehttp 2184 10212 "GET /api/v1/navigation/categories HTTP/1.1" 301 0
+INFO 2025-07-04 17:20:05,740 basehttp 2184 15256 "GET /api/v1/navigation/categories/ HTTP/1.1" 200 52

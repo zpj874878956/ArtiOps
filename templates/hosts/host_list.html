@@ -1,0 +1,900 @@
+{% extends 'base.html' %}
+
+{% block title %}主机管理 - 运维平台{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">主机管理</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addHostModal">
+                            <i class="fas fa-plus"></i> 添加主机
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm" id="batchImportBtn">
+                            <i class="fas fa-file-import"></i> 批量导入
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- 过滤器 -->
+                    <div class="row mb-3">
+                        <div class="col-md-2">
+                            <select class="form-control" id="statusFilter">
+                                <option value="">全部状态</option>
+                                <option value="online">在线</option>
+                                <option value="offline">离线</option>
+                                <option value="unknown">未知</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-control" id="osTypeFilter">
+                                <option value="">全部系统</option>
+                                <option value="linux">Linux</option>
+                                <option value="windows">Windows</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-control" id="groupFilter">
+                                <option value="">全部主机组</option>
+                                <!-- 主机组选项将通过AJAX加载 -->
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-control" id="tagFilter">
+                                <option value="">全部标签</option>
+                                <!-- 标签选项将通过AJAX加载 -->
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="searchInput" placeholder="搜索主机名/IP/描述">
+                                <div class="input-group-append">
+                                    <button class="btn btn-default" id="searchBtn">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 主机列表表格 -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px">
+                                        <input type="checkbox" id="selectAll">
+                                    </th>
+                                    <th>主机名</th>
+                                    <th>IP地址</th>
+                                    <th>状态</th>
+                                    <th>系统类型</th>
+                                    <th>主机组</th>
+                                    <th>标签</th>
+                                    <th>创建时间</th>
+                                    <th style="width: 150px">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hostTableBody">
+                                <!-- 主机数据将通过AJAX加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 分页控件 -->
+                    <div class="row mt-3">
+                        <div class="col-sm-12 col-md-5">
+                            <div class="dataTables_info" id="paginationInfo" role="status" aria-live="polite">
+                                显示第 1 至 10 项，共 0 项
+                            </div>
+                        </div>
+                        <div class="col-sm-12 col-md-7">
+                            <div class="dataTables_paginate paging_simple_numbers" id="pagination">
+                                <ul class="pagination">
+                                    <li class="paginate_button page-item previous disabled">
+                                        <a href="#" class="page-link">上一页</a>
+                                    </li>
+                                    <li class="paginate_button page-item active">
+                                        <a href="#" class="page-link">1</a>
+                                    </li>
+                                    <li class="paginate_button page-item next disabled">
+                                        <a href="#" class="page-link">下一页</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加主机模态框 -->
+<div class="modal fade" id="addHostModal" tabindex="-1" role="dialog" aria-labelledby="addHostModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addHostModalLabel">添加主机</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addHostForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="hostname">主机名 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="hostname" name="hostname" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="ip_address">IP地址 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="ip_address" name="ip_address" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="os_type">系统类型</label>
+                                <select class="form-control" id="os_type" name="os_type">
+                                    <option value="linux">Linux</option>
+                                    <option value="windows">Windows</option>
+                                    <option value="other">其他</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="port">SSH端口</label>
+                                <input type="number" class="form-control" id="port" name="port" value="22">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="groups">主机组</label>
+                                <select class="form-control select2" id="groups" name="groups" multiple>
+                                    <!-- 主机组选项将通过AJAX加载 -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="tags">标签</label>
+                                <select class="form-control select2" id="tags" name="tags" multiple>
+                                    <!-- 标签选项将通过AJAX加载 -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">描述</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveHostBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 批量导入模态框 -->
+<div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">批量导入主机</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="importForm">
+                    <div class="form-group">
+                        <label for="importFile">选择CSV文件</label>
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="importFile" accept=".csv">
+                            <label class="custom-file-label" for="importFile">选择文件</label>
+                        </div>
+                        <small class="form-text text-muted">CSV格式：主机名,IP地址,系统类型,SSH端口,描述</small>
+                    </div>
+                </form>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 导入前请确保CSV文件格式正确，第一行为标题行。
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="startImportBtn">开始导入</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 主机详情模态框 -->
+<div class="modal fade" id="hostDetailModal" tabindex="-1" role="dialog" aria-labelledby="hostDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="hostDetailModalLabel">主机详情</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="hostDetailContent">
+                    <!-- 主机详情将通过AJAX加载 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="editHostBtn">编辑</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">确认删除</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除选中的主机吗？此操作不可恢复。</p>
+                <div id="deleteHostList">
+                    <!-- 要删除的主机列表 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(function () {
+        // 初始化Select2
+        $('.select2').select2({
+            theme: 'bootstrap4'
+        });
+        
+        // 加载主机组和标签选项
+        loadHostGroups();
+        loadHostTags();
+        
+        // 加载主机列表
+        loadHosts();
+        
+        // 搜索按钮点击事件
+        $('#searchBtn').click(function() {
+            loadHosts();
+        });
+        
+        // 过滤器变更事件
+        $('#statusFilter, #osTypeFilter, #groupFilter, #tagFilter').change(function() {
+            loadHosts();
+        });
+        
+        // 全选/取消全选
+        $('#selectAll').change(function() {
+            $('.host-checkbox').prop('checked', $(this).prop('checked'));
+        });
+        
+        // 保存主机按钮点击事件
+        $('#saveHostBtn').click(function() {
+            saveHost();
+        });
+        
+        // 批量导入按钮点击事件
+        $('#batchImportBtn').click(function() {
+            $('#importModal').modal('show');
+        });
+        
+        // 开始导入按钮点击事件
+        $('#startImportBtn').click(function() {
+            importHosts();
+        });
+        
+        // 文件选择器变更事件
+        $('#importFile').change(function() {
+            var fileName = $(this).val().split('\\').pop();
+            $(this).next('.custom-file-label').html(fileName);
+        });
+        
+        // 确认删除按钮点击事件
+        $('#confirmDeleteBtn').click(function() {
+            deleteSelectedHosts();
+        });
+    });
+    
+    // 加载主机列表
+    function loadHosts(page = 1) {
+        // 获取过滤条件
+        var status = $('#statusFilter').val();
+        var osType = $('#osTypeFilter').val();
+        var group = $('#groupFilter').val();
+        var tag = $('#tagFilter').val();
+        var search = $('#searchInput').val();
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/hosts/',
+        //     type: 'GET',
+        //     data: {
+        //         status: status,
+        //         os_type: osType,
+        //         group: group,
+        //         tag: tag,
+        //         search: search,
+        //         page: page
+        //     },
+        //     success: function(response) {
+        //         renderHostTable(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载主机列表失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            count: 25,
+            next: page < 3 ? '/hosts/api/hosts/?page=' + (page + 1) : null,
+            previous: page > 1 ? '/hosts/api/hosts/?page=' + (page - 1) : null,
+            results: [
+                {
+                    id: 1,
+                    hostname: 'web-server-01',
+                    ip_address: '192.168.1.101',
+                    status: 'online',
+                    os_type: 'linux',
+                    groups: [{id: 1, name: '生产环境'}, {id: 2, name: 'Web服务器'}],
+                    tags: [{id: 1, name: 'Nginx'}],
+                    created_at: '2023-06-01T10:00:00Z'
+                },
+                {
+                    id: 2,
+                    hostname: 'db-server-01',
+                    ip_address: '192.168.1.102',
+                    status: 'online',
+                    os_type: 'linux',
+                    groups: [{id: 1, name: '生产环境'}, {id: 3, name: '数据库服务器'}],
+                    tags: [{id: 2, name: 'MySQL'}],
+                    created_at: '2023-06-01T10:30:00Z'
+                },
+                {
+                    id: 3,
+                    hostname: 'app-server-01',
+                    ip_address: '192.168.1.103',
+                    status: 'offline',
+                    os_type: 'linux',
+                    groups: [{id: 1, name: '生产环境'}, {id: 4, name: '应用服务器'}],
+                    tags: [{id: 3, name: 'Java'}],
+                    created_at: '2023-06-01T11:00:00Z'
+                },
+                {
+                    id: 4,
+                    hostname: 'win-server-01',
+                    ip_address: '192.168.1.104',
+                    status: 'unknown',
+                    os_type: 'windows',
+                    groups: [{id: 5, name: '测试环境'}],
+                    tags: [{id: 4, name: '.NET'}],
+                    created_at: '2023-06-02T09:00:00Z'
+                },
+                {
+                    id: 5,
+                    hostname: 'cache-server-01',
+                    ip_address: '192.168.1.105',
+                    status: 'online',
+                    os_type: 'linux',
+                    groups: [{id: 1, name: '生产环境'}, {id: 6, name: '缓存服务器'}],
+                    tags: [{id: 5, name: 'Redis'}],
+                    created_at: '2023-06-02T10:00:00Z'
+                }
+            ]
+        };
+        
+        renderHostTable(mockData, page);
+    }
+    
+    // 渲染主机表格
+    function renderHostTable(data, currentPage) {
+        var tableBody = $('#hostTableBody');
+        tableBody.empty();
+        
+        // 渲染主机数据
+        $.each(data.results, function(index, host) {
+            var statusClass = '';
+            var statusText = '';
+            
+            switch(host.status) {
+                case 'online':
+                    statusClass = 'badge-success';
+                    statusText = '在线';
+                    break;
+                case 'offline':
+                    statusClass = 'badge-danger';
+                    statusText = '离线';
+                    break;
+                default:
+                    statusClass = 'badge-secondary';
+                    statusText = '未知';
+            }
+            
+            var groupsHtml = '';
+            $.each(host.groups, function(i, group) {
+                groupsHtml += '<span class="badge badge-info mr-1">' + group.name + '</span>';
+            });
+            
+            var tagsHtml = '';
+            $.each(host.tags, function(i, tag) {
+                tagsHtml += '<span class="badge badge-primary mr-1">' + tag.name + '</span>';
+            });
+            
+            var createdAt = new Date(host.created_at).toLocaleString();
+            
+            var row = '<tr>' +
+                '<td><input type="checkbox" class="host-checkbox" value="' + host.id + '"></td>' +
+                '<td>' + host.hostname + '</td>' +
+                '<td>' + host.ip_address + '</td>' +
+                '<td><span class="badge ' + statusClass + '">' + statusText + '</span></td>' +
+                '<td>' + (host.os_type === 'linux' ? 'Linux' : (host.os_type === 'windows' ? 'Windows' : '其他')) + '</td>' +
+                '<td>' + groupsHtml + '</td>' +
+                '<td>' + tagsHtml + '</td>' +
+                '<td>' + createdAt + '</td>' +
+                '<td>' +
+                    '<button type="button" class="btn btn-sm btn-info view-host" data-id="' + host.id + '">' +
+                        '<i class="fas fa-eye"></i>' +
+                    '</button> ' +
+                    '<button type="button" class="btn btn-sm btn-primary edit-host" data-id="' + host.id + '">' +
+                        '<i class="fas fa-edit"></i>' +
+                    '</button> ' +
+                    '<button type="button" class="btn btn-sm btn-danger delete-host" data-id="' + host.id + '" data-name="' + host.hostname + '">' +
+                        '<i class="fas fa-trash"></i>' +
+                    '</button>' +
+                '</td>' +
+            '</tr>';
+            
+            tableBody.append(row);
+        });
+        
+        // 更新分页信息
+        var start = (currentPage - 1) * 10 + 1;
+        var end = start + data.results.length - 1;
+        $('#paginationInfo').text('显示第 ' + start + ' 至 ' + end + ' 项，共 ' + data.count + ' 项');
+        
+        // 更新分页控件
+        renderPagination(data, currentPage);
+        
+        // 绑定查看、编辑和删除按钮事件
+        bindHostActions();
+    }
+    
+    // 渲染分页控件
+    function renderPagination(data, currentPage) {
+        var pagination = $('#pagination ul');
+        pagination.empty();
+        
+        // 上一页按钮
+        var prevDisabled = !data.previous ? 'disabled' : '';
+        pagination.append(
+            '<li class="paginate_button page-item previous ' + prevDisabled + '">' +
+                '<a href="#" class="page-link" data-page="' + (currentPage - 1) + '">上一页</a>' +
+            '</li>'
+        );
+        
+        // 页码按钮
+        var totalPages = Math.ceil(data.count / 10);
+        for (var i = 1; i <= totalPages; i++) {
+            var active = i === currentPage ? 'active' : '';
+            pagination.append(
+                '<li class="paginate_button page-item ' + active + '">' +
+                    '<a href="#" class="page-link" data-page="' + i + '">' + i + '</a>' +
+                '</li>'
+            );
+        }
+        
+        // 下一页按钮
+        var nextDisabled = !data.next ? 'disabled' : '';
+        pagination.append(
+            '<li class="paginate_button page-item next ' + nextDisabled + '">' +
+                '<a href="#" class="page-link" data-page="' + (currentPage + 1) + '">下一页</a>' +
+            '</li>'
+        );
+        
+        // 绑定分页按钮点击事件
+        $('.page-link').click(function(e) {
+            e.preventDefault();
+            if (!$(this).parent().hasClass('disabled')) {
+                var page = $(this).data('page');
+                loadHosts(page);
+            }
+        });
+    }
+    
+    // 绑定主机操作按钮事件
+    function bindHostActions() {
+        // 查看主机详情
+        $('.view-host').click(function() {
+            var hostId = $(this).data('id');
+            viewHostDetail(hostId);
+        });
+        
+        // 编辑主机
+        $('.edit-host').click(function() {
+            var hostId = $(this).data('id');
+            editHost(hostId);
+        });
+        
+        // 删除主机
+        $('.delete-host').click(function() {
+            var hostId = $(this).data('id');
+            var hostname = $(this).data('name');
+            showDeleteConfirm([{id: hostId, hostname: hostname}]);
+        });
+    }
+    
+    // 加载主机组选项
+    function loadHostGroups() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/groups/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderHostGroupOptions(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载主机组失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [
+            {id: 1, name: '生产环境'},
+            {id: 2, name: 'Web服务器'},
+            {id: 3, name: '数据库服务器'},
+            {id: 4, name: '应用服务器'},
+            {id: 5, name: '测试环境'},
+            {id: 6, name: '缓存服务器'}
+        ];
+        
+        renderHostGroupOptions(mockData);
+    }
+    
+    // 渲染主机组选项
+    function renderHostGroupOptions(groups) {
+        var groupFilter = $('#groupFilter');
+        var groupSelect = $('#groups');
+        
+        // 清空现有选项
+        groupFilter.find('option:not(:first)').remove();
+        groupSelect.empty();
+        
+        // 添加选项
+        $.each(groups, function(index, group) {
+            groupFilter.append('<option value="' + group.id + '">' + group.name + '</option>');
+            groupSelect.append('<option value="' + group.id + '">' + group.name + '</option>');
+        });
+    }
+    
+    // 加载主机标签选项
+    function loadHostTags() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/tags/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderHostTagOptions(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载主机标签失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [
+            {id: 1, name: 'Nginx'},
+            {id: 2, name: 'MySQL'},
+            {id: 3, name: 'Java'},
+            {id: 4, name: '.NET'},
+            {id: 5, name: 'Redis'},
+            {id: 6, name: 'MongoDB'}
+        ];
+        
+        renderHostTagOptions(mockData);
+    }
+    
+    // 渲染主机标签选项
+    function renderHostTagOptions(tags) {
+        var tagFilter = $('#tagFilter');
+        var tagSelect = $('#tags');
+        
+        // 清空现有选项
+        tagFilter.find('option:not(:first)').remove();
+        tagSelect.empty();
+        
+        // 添加选项
+        $.each(tags, function(index, tag) {
+            tagFilter.append('<option value="' + tag.id + '">' + tag.name + '</option>');
+            tagSelect.append('<option value="' + tag.id + '">' + tag.name + '</option>');
+        });
+    }
+    
+    // 保存主机
+    function saveHost() {
+        // 获取表单数据
+        var formData = {
+            hostname: $('#hostname').val(),
+            ip_address: $('#ip_address').val(),
+            os_type: $('#os_type').val(),
+            port: $('#port').val(),
+            groups: $('#groups').val(),
+            tags: $('#tags').val(),
+            description: $('#description').val()
+        };
+        
+        // 表单验证
+        if (!formData.hostname || !formData.ip_address) {
+            toastr.error('主机名和IP地址不能为空');
+            return;
+        }
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/hosts/',
+        //     type: 'POST',
+        //     data: JSON.stringify(formData),
+        //     contentType: 'application/json',
+        //     success: function(response) {
+        //         $('#addHostModal').modal('hide');
+        //         toastr.success('主机添加成功');
+        //         loadHosts();
+        //     },
+        //     error: function(error) {
+        //         toastr.error('主机添加失败');
+        //     }
+        // });
+        
+        // 模拟成功响应
+        $('#addHostModal').modal('hide');
+        toastr.success('主机添加成功');
+        loadHosts();
+    }
+    
+    // 查看主机详情
+    function viewHostDetail(hostId) {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/hosts/' + hostId + '/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderHostDetail(response);
+        //         $('#hostDetailModal').modal('show');
+        //     },
+        //     error: function(error) {
+        //         toastr.error('获取主机详情失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            id: hostId,
+            hostname: 'web-server-01',
+            ip_address: '192.168.1.101',
+            status: 'online',
+            os_type: 'linux',
+            port: 22,
+            groups: [{id: 1, name: '生产环境'}, {id: 2, name: 'Web服务器'}],
+            tags: [{id: 1, name: 'Nginx'}],
+            description: '生产环境Web服务器，运行Nginx',
+            created_at: '2023-06-01T10:00:00Z',
+            created_by: '管理员'
+        };
+        
+        renderHostDetail(mockData);
+        $('#hostDetailModal').modal('show');
+    }
+    
+    // 渲染主机详情
+    function renderHostDetail(host) {
+        var statusText = '';
+        var statusClass = '';
+        
+        switch(host.status) {
+            case 'online':
+                statusText = '在线';
+                statusClass = 'text-success';
+                break;
+            case 'offline':
+                statusText = '离线';
+                statusClass = 'text-danger';
+                break;
+            default:
+                statusText = '未知';
+                statusClass = 'text-secondary';
+        }
+        
+        var groupsHtml = '';
+        $.each(host.groups, function(i, group) {
+            groupsHtml += '<span class="badge badge-info mr-1">' + group.name + '</span>';
+        });
+        
+        var tagsHtml = '';
+        $.each(host.tags, function(i, tag) {
+            tagsHtml += '<span class="badge badge-primary mr-1">' + tag.name + '</span>';
+        });
+        
+        var createdAt = new Date(host.created_at).toLocaleString();
+        
+        var detailHtml = '<div class="row">' +
+            '<div class="col-md-6">' +
+                '<p><strong>主机名：</strong>' + host.hostname + '</p>' +
+                '<p><strong>IP地址：</strong>' + host.ip_address + '</p>' +
+                '<p><strong>状态：</strong><span class="' + statusClass + '">' + statusText + '</span></p>' +
+                '<p><strong>系统类型：</strong>' + (host.os_type === 'linux' ? 'Linux' : (host.os_type === 'windows' ? 'Windows' : '其他')) + '</p>' +
+                '<p><strong>SSH端口：</strong>' + host.port + '</p>' +
+            '</div>' +
+            '<div class="col-md-6">' +
+                '<p><strong>主机组：</strong>' + groupsHtml + '</p>' +
+                '<p><strong>标签：</strong>' + tagsHtml + '</p>' +
+                '<p><strong>创建时间：</strong>' + createdAt + '</p>' +
+                '<p><strong>创建人：</strong>' + host.created_by + '</p>' +
+            '</div>' +
+        '</div>' +
+        '<div class="row mt-3">' +
+            '<div class="col-12">' +
+                '<p><strong>描述：</strong></p>' +
+                '<p>' + (host.description || '无') + '</p>' +
+            '</div>' +
+        '</div>';
+        
+        $('#hostDetailContent').html(detailHtml);
+        
+        // 设置编辑按钮的主机ID
+        $('#editHostBtn').data('id', host.id);
+    }
+    
+    // 编辑主机
+    function editHost(hostId) {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/hosts/' + hostId + '/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         fillHostForm(response);
+        //         $('#addHostModalLabel').text('编辑主机');
+        //         $('#addHostModal').modal('show');
+        //     },
+        //     error: function(error) {
+        //         toastr.error('获取主机信息失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            id: hostId,
+            hostname: 'web-server-01',
+            ip_address: '192.168.1.101',
+            os_type: 'linux',
+            port: 22,
+            groups: [1, 2],
+            tags: [1],
+            description: '生产环境Web服务器，运行Nginx'
+        };
+        
+        fillHostForm(mockData);
+        $('#addHostModalLabel').text('编辑主机');
+        $('#addHostModal').modal('show');
+    }
+    
+    // 填充主机表单
+    function fillHostForm(host) {
+        $('#hostname').val(host.hostname);
+        $('#ip_address').val(host.ip_address);
+        $('#os_type').val(host.os_type);
+        $('#port').val(host.port);
+        $('#groups').val(host.groups).trigger('change');
+        $('#tags').val(host.tags).trigger('change');
+        $('#description').val(host.description);
+        
+        // 设置保存按钮的主机ID
+        $('#saveHostBtn').data('id', host.id);
+    }
+    
+    // 显示删除确认对话框
+    function showDeleteConfirm(hosts) {
+        var hostListHtml = '<ul>';
+        $.each(hosts, function(index, host) {
+            hostListHtml += '<li>' + host.hostname + '</li>';
+        });
+        hostListHtml += '</ul>';
+        
+        $('#deleteHostList').html(hostListHtml);
+        $('#confirmDeleteBtn').data('hosts', hosts.map(function(host) { return host.id; }));
+        $('#deleteConfirmModal').modal('show');
+    }
+    
+    // 删除选中的主机
+    function deleteSelectedHosts() {
+        var hostIds = $('#confirmDeleteBtn').data('hosts');
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/hosts/batch-delete/',
+        //     type: 'POST',
+        //     data: JSON.stringify({host_ids: hostIds}),
+        //     contentType: 'application/json',
+        //     success: function(response) {
+        //         $('#deleteConfirmModal').modal('hide');
+        //         toastr.success('主机删除成功');
+        //         loadHosts();
+        //     },
+        //     error: function(error) {
+        //         toastr.error('主机删除失败');
+        //     }
+        // });
+        
+        // 模拟成功响应
+        $('#deleteConfirmModal').modal('hide');
+        toastr.success('主机删除成功');
+        loadHosts();
+    }
+    
+    // 导入主机
+    function importHosts() {
+        var fileInput = $('#importFile')[0];
+        if (!fileInput.files || fileInput.files.length === 0) {
+            toastr.error('请选择CSV文件');
+            return;
+        }
+        
+        var file = fileInput.files[0];
+        var formData = new FormData();
+        formData.append('file', file);
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/hosts/import/',
+        //     type: 'POST',
+        //     data: formData,
+        //     processData: false,
+        //     contentType: false,
+        //     success: function(response) {
+        //         $('#importModal').modal('hide');
+        //         toastr.success('主机导入成功，共导入 ' + response.imported_count + ' 台主机');
+        //         loadHosts();
+        //     },
+        //     error: function(error) {
+        //         toastr.error('主机导入失败');
+        //     }
+        // });
+        
+        // 模拟成功响应
+        $('#importModal').modal('hide');
+        toastr.success('主机导入成功，共导入 5 台主机');
+        loadHosts();
+    }
+</script>
+{% endblock %}

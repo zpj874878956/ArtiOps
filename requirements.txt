@@ -1,0 +1,30 @@
+# Django核心
+Django==4.2
+djangorestframework==3.14.0
+django-filter==23.2
+
+# 认证相关
+djangorestframework-simplejwt==5.2.2
+django-oauth-toolkit==2.3.0
+
+# 数据库
+mysqlclient==2.1.1
+
+# API文档
+drf-yasg==1.21.7
+
+# 跨域支持
+django-cors-headers==4.1.0
+
+# 图片处理
+Pillow==10.0.0
+
+# 开发工具
+django-debug-toolbar==4.1.0
+
+# 部署相关
+gunicorn==21.2.0
+whitenoise==6.5.0
+
+# 监控与日志
+django-prometheus==2.3.1

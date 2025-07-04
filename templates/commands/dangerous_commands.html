@@ -1,0 +1,544 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}危险命令管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>危险命令管理</h1>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCommandModal">
+            <i class="bi bi-plus-circle"></i> 新建规则
+        </button>
+    </div>
+    
+    <!-- 过滤器 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="filter-form" class="row g-3">
+                <div class="col-md-4">
+                    <label for="filter-pattern" class="form-label">命令模式</label>
+                    <input type="text" class="form-control" id="filter-pattern" name="pattern" placeholder="输入命令模式">
+                </div>
+                <div class="col-md-3">
+                    <label for="filter-match-type" class="form-label">匹配类型</label>
+                    <select class="form-select" id="filter-match-type" name="match_type">
+                        <option value="">全部</option>
+                        <option value="exact">精确匹配</option>
+                        <option value="contains">包含</option>
+                        <option value="startswith">开头匹配</option>
+                        <option value="endswith">结尾匹配</option>
+                        <option value="regex">正则表达式</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filter-action" class="form-label">处理动作</label>
+                    <select class="form-select" id="filter-action" name="action">
+                        <option value="">全部</option>
+                        <option value="forbid">禁止执行</option>
+                        <option value="warn">警告提示</option>
+                        <option value="log">仅记录</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> 搜索
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 危险命令列表 -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>命令模式</th>
+                            <th>匹配类型</th>
+                            <th>处理动作</th>
+                            <th>描述</th>
+                            <th>创建人</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for command in dangerous_commands %}
+                        <tr>
+                            <td>{{ command.id }}</td>
+                            <td><code>{{ command.pattern }}</code></td>
+                            <td>
+                                {% if command.match_type == 'exact' %}
+                                精确匹配
+                                {% elif command.match_type == 'contains' %}
+                                包含
+                                {% elif command.match_type == 'startswith' %}
+                                开头匹配
+                                {% elif command.match_type == 'endswith' %}
+                                结尾匹配
+                                {% elif command.match_type == 'regex' %}
+                                正则表达式
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if command.action == 'forbid' %}
+                                <span class="badge bg-danger">禁止执行</span>
+                                {% elif command.action == 'warn' %}
+                                <span class="badge bg-warning text-dark">警告提示</span>
+                                {% elif command.action == 'log' %}
+                                <span class="badge bg-info">仅记录</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ command.description|truncatechars:50 }}</td>
+                            <td>{{ command.created_by.username }}</td>
+                            <td>{{ command.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary btn-edit-command" data-id="{{ command.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-command" data-id="{{ command.id }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">暂无危险命令规则</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分页 -->
+            {% if dangerous_commands.has_other_pages %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mt-4">
+                    {% if dangerous_commands.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">&laquo; 首页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ dangerous_commands.previous_page_number }}">上一页</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo; 首页</span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">上一页</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% for i in dangerous_commands.paginator.page_range %}
+                        {% if dangerous_commands.number == i %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ i }}</span>
+                        </li>
+                        {% elif i > dangerous_commands.number|add:'-3' and i < dangerous_commands.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if dangerous_commands.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ dangerous_commands.next_page_number }}">下一页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ dangerous_commands.paginator.num_pages }}">末页 &raquo;</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">下一页</span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">末页 &raquo;</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- 危险命令说明 -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">危险命令说明</h5>
+        </div>
+        <div class="card-body">
+            <p>危险命令管理用于定义和管理可能对系统造成风险的命令。系统会根据配置的规则对用户提交的命令进行检查，并根据处理动作执行相应操作：</p>
+            <ul>
+                <li><strong>禁止执行</strong>：系统将阻止命令执行，并返回错误信息。</li>
+                <li><strong>警告提示</strong>：系统将显示警告信息，用户确认后可继续执行。</li>
+                <li><strong>仅记录</strong>：系统将记录命令执行，但不阻止或警告。</li>
+            </ul>
+            <p>匹配类型说明：</p>
+            <ul>
+                <li><strong>精确匹配</strong>：命令必须与模式完全一致。</li>
+                <li><strong>包含</strong>：命令中包含指定模式。</li>
+                <li><strong>开头匹配</strong>：命令以指定模式开头。</li>
+                <li><strong>结尾匹配</strong>：命令以指定模式结尾。</li>
+                <li><strong>正则表达式</strong>：使用正则表达式进行匹配。</li>
+            </ul>
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 提示：危险命令规则按优先级从高到低执行，优先级由创建时间决定，越早创建的规则优先级越高。
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新建危险命令模态框 -->
+<div class="modal fade" id="createCommandModal" tabindex="-1" aria-labelledby="createCommandModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createCommandModalLabel">新建危险命令规则</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="create-command-form">
+                    <div class="mb-3">
+                        <label for="command-pattern" class="form-label">命令模式</label>
+                        <input type="text" class="form-control" id="command-pattern" name="pattern" required>
+                        <div class="form-text">输入要匹配的命令模式，根据匹配类型进行解释。</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="command-match-type" class="form-label">匹配类型</label>
+                        <select class="form-select" id="command-match-type" name="match_type" required>
+                            <option value="exact">精确匹配</option>
+                            <option value="contains">包含</option>
+                            <option value="startswith">开头匹配</option>
+                            <option value="endswith">结尾匹配</option>
+                            <option value="regex">正则表达式</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="command-action" class="form-label">处理动作</label>
+                        <select class="form-select" id="command-action" name="action" required>
+                            <option value="forbid">禁止执行</option>
+                            <option value="warn">警告提示</option>
+                            <option value="log">仅记录</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="command-description" class="form-label">描述</label>
+                        <textarea class="form-control" id="command-description" name="description" rows="3"></textarea>
+                        <div class="form-text">描述此规则的目的和潜在风险。</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btn-create-command">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑危险命令模态框 -->
+<div class="modal fade" id="editCommandModal" tabindex="-1" aria-labelledby="editCommandModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editCommandModalLabel">编辑危险命令规则</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-command-form">
+                    <input type="hidden" id="edit-command-id" name="id">
+                    <div class="mb-3">
+                        <label for="edit-command-pattern" class="form-label">命令模式</label>
+                        <input type="text" class="form-control" id="edit-command-pattern" name="pattern" required>
+                        <div class="form-text">输入要匹配的命令模式，根据匹配类型进行解释。</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-command-match-type" class="form-label">匹配类型</label>
+                        <select class="form-select" id="edit-command-match-type" name="match_type" required>
+                            <option value="exact">精确匹配</option>
+                            <option value="contains">包含</option>
+                            <option value="startswith">开头匹配</option>
+                            <option value="endswith">结尾匹配</option>
+                            <option value="regex">正则表达式</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-command-action" class="form-label">处理动作</label>
+                        <select class="form-select" id="edit-command-action" name="action" required>
+                            <option value="forbid">禁止执行</option>
+                            <option value="warn">警告提示</option>
+                            <option value="log">仅记录</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-command-description" class="form-label">描述</label>
+                        <textarea class="form-control" id="edit-command-description" name="description" rows="3"></textarea>
+                        <div class="form-text">描述此规则的目的和潜在风险。</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btn-update-command">保存更改</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteCommandModal" tabindex="-1" aria-labelledby="deleteCommandModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCommandModalLabel">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除命令规则 <code id="delete-command-pattern"></code> 吗？此操作不可恢复。</p>
+                <input type="hidden" id="delete-command-id">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="btn-confirm-delete">确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 命令检查测试模态框 -->
+<div class="modal fade" id="testCommandModal" tabindex="-1" aria-labelledby="testCommandModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="testCommandModalLabel">命令检查测试</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="test-command-form">
+                    <div class="mb-3">
+                        <label for="test-command" class="form-label">输入要测试的命令</label>
+                        <textarea class="form-control" id="test-command" name="command" rows="3" placeholder="输入要测试的命令..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-primary" id="btn-check-command">检查命令</button>
+                    </div>
+                    <div id="test-result" class="d-none">
+                        <div class="alert" role="alert">
+                            <h6 class="alert-heading">检查结果：</h6>
+                            <p id="test-result-message"></p>
+                            <hr>
+                            <p class="mb-0" id="test-result-detail"></p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // 创建危险命令规则
+        $('#btn-create-command').on('click', function() {
+            let formData = {
+                pattern: $('#command-pattern').val(),
+                match_type: $('#command-match-type').val(),
+                action: $('#command-action').val(),
+                description: $('#command-description').val()
+            };
+            
+            // 通过AJAX发送创建请求
+            console.log('创建危险命令规则:', formData);
+            
+            // 模拟创建成功
+            alert('规则创建成功！');
+            $('#createCommandModal').modal('hide');
+            // 刷新页面
+            location.reload();
+        });
+        
+        // 编辑危险命令规则
+        $('.btn-edit-command').on('click', function() {
+            let commandId = $(this).data('id');
+            
+            // 通过AJAX获取规则详情
+            // 这里使用假数据示例
+            let commandData = {
+                id: commandId,
+                pattern: commandId % 3 === 0 ? 'rm -rf /' : (commandId % 3 === 1 ? 'DROP DATABASE' : 'chmod 777'),
+                match_type: ['exact', 'contains', 'startswith', 'endswith', 'regex'][commandId % 5],
+                action: ['forbid', 'warn', 'log'][commandId % 3],
+                description: '这是一个危险命令规则的描述，用于说明此规则的目的和潜在风险。'
+            };
+            
+            // 填充编辑表单
+            $('#edit-command-id').val(commandData.id);
+            $('#edit-command-pattern').val(commandData.pattern);
+            $('#edit-command-match-type').val(commandData.match_type);
+            $('#edit-command-action').val(commandData.action);
+            $('#edit-command-description').val(commandData.description);
+            
+            $('#editCommandModal').modal('show');
+        });
+        
+        // 更新危险命令规则
+        $('#btn-update-command').on('click', function() {
+            let formData = {
+                id: $('#edit-command-id').val(),
+                pattern: $('#edit-command-pattern').val(),
+                match_type: $('#edit-command-match-type').val(),
+                action: $('#edit-command-action').val(),
+                description: $('#edit-command-description').val()
+            };
+            
+            // 通过AJAX发送更新请求
+            console.log('更新危险命令规则:', formData);
+            
+            // 模拟更新成功
+            alert('规则更新成功！');
+            $('#editCommandModal').modal('hide');
+            // 刷新页面
+            location.reload();
+        });
+        
+        // 删除危险命令规则
+        $('.btn-delete-command').on('click', function() {
+            let commandId = $(this).data('id');
+            let commandPattern = $(this).closest('tr').find('td:nth-child(2)').text();
+            
+            $('#delete-command-id').val(commandId);
+            $('#delete-command-pattern').text(commandPattern);
+            
+            $('#deleteCommandModal').modal('show');
+        });
+        
+        // 确认删除
+        $('#btn-confirm-delete').on('click', function() {
+            let commandId = $('#delete-command-id').val();
+            
+            // 通过AJAX发送删除请求
+            console.log('删除危险命令规则:', commandId);
+            
+            // 模拟删除成功
+            alert('规则删除成功！');
+            $('#deleteCommandModal').modal('hide');
+            // 刷新页面
+            location.reload();
+        });
+        
+        // 命令检查测试
+        $('#btn-check-command').on('click', function() {
+            let command = $('#test-command').val();
+            
+            if (!command) {
+                alert('请输入要测试的命令！');
+                return;
+            }
+            
+            // 通过AJAX发送命令检查请求
+            // 这里使用模拟响应
+            let result = {
+                is_dangerous: true,
+                action: 'warn',
+                message: '命令包含潜在危险操作',
+                matched_rule: {
+                    pattern: 'rm -rf',
+                    match_type: 'contains',
+                    action: 'warn',
+                    description: '删除文件或目录的危险命令'
+                }
+            };
+            
+            // 显示检查结果
+            let $testResult = $('#test-result');
+            let $testResultMessage = $('#test-result-message');
+            let $testResultDetail = $('#test-result-detail');
+            let $alert = $testResult.find('.alert');
+            
+            $testResult.removeClass('d-none');
+            
+            if (result.is_dangerous) {
+                if (result.action === 'forbid') {
+                    $alert.removeClass('alert-warning alert-info').addClass('alert-danger');
+                    $testResultMessage.text('命令被禁止执行！');
+                } else if (result.action === 'warn') {
+                    $alert.removeClass('alert-danger alert-info').addClass('alert-warning');
+                    $testResultMessage.text('命令需要警告提示！');
+                } else {
+                    $alert.removeClass('alert-danger alert-warning').addClass('alert-info');
+                    $testResultMessage.text('命令需要记录！');
+                }
+                
+                $testResultDetail.html(`
+                    匹配规则: <code>${result.matched_rule.pattern}</code><br>
+                    匹配类型: ${getMatchTypeName(result.matched_rule.match_type)}<br>
+                    处理动作: ${getActionName(result.matched_rule.action)}<br>
+                    描述: ${result.matched_rule.description}
+                `);
+            } else {
+                $alert.removeClass('alert-danger alert-warning').addClass('alert-success');
+                $testResultMessage.text('命令安全，可以执行！');
+                $testResultDetail.text('未匹配到任何危险命令规则。');
+            }
+        });
+        
+        // 辅助函数：获取匹配类型名称
+        function getMatchTypeName(matchType) {
+            switch (matchType) {
+                case 'exact': return '精确匹配';
+                case 'contains': return '包含';
+                case 'startswith': return '开头匹配';
+                case 'endswith': return '结尾匹配';
+                case 'regex': return '正则表达式';
+                default: return matchType;
+            }
+        }
+        
+        // 辅助函数：获取处理动作名称
+        function getActionName(action) {
+            switch (action) {
+                case 'forbid': return '禁止执行';
+                case 'warn': return '警告提示';
+                case 'log': return '仅记录';
+                default: return action;
+            }
+        }
+        
+        // 过滤表单提交
+        $('#filter-form').on('submit', function(e) {
+            e.preventDefault();
+            
+            // 获取表单数据
+            let formData = {
+                pattern: $('#filter-pattern').val(),
+                match_type: $('#filter-match-type').val(),
+                action: $('#filter-action').val()
+            };
+            
+            // 构建查询字符串
+            let queryParams = [];
+            for (let key in formData) {
+                if (formData[key]) {
+                    queryParams.push(key + '=' + encodeURIComponent(formData[key]));
+                }
+            }
+            
+            // 重定向到带有查询参数的当前页面
+            window.location.href = '?' + queryParams.join('&');
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,2276 @@
+{% extends 'base.html' %}
+
+{% block title %}主机详情 - 运维平台{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-4">
+            <!-- 主机基本信息卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">基本信息</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-toggle="modal" data-target="#editHostModal">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="hostBasicInfo">
+                        <!-- 主机基本信息将通过AJAX加载 -->
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">加载中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系统信息卡片 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">系统信息</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" id="refreshSystemInfoBtn">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="hostSystemInfo">
+                        <!-- 主机系统信息将通过AJAX加载 -->
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">加载中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <!-- 主机状态监控卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">资源监控</h3>
+                    <div class="card-tools">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-tool dropdown-toggle" data-toggle="dropdown">
+                                <i class="fas fa-clock"></i> <span id="monitorTimeRange">最近1小时</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right">
+                                <a class="dropdown-item" href="#" data-range="1h">最近1小时</a>
+                                <a class="dropdown-item" href="#" data-range="6h">最近6小时</a>
+                                <a class="dropdown-item" href="#" data-range="24h">最近24小时</a>
+                                <a class="dropdown-item" href="#" data-range="7d">最近7天</a>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-tool" id="refreshMonitorBtn">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="chart-container" style="position: relative; height: 200px;">
+                                <canvas id="cpuChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container" style="position: relative; height: 200px;">
+                                <canvas id="memoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="chart-container" style="position: relative; height: 200px;">
+                                <canvas id="diskChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container" style="position: relative; height: 200px;">
+                                <canvas id="networkChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 标签页导航 -->
+            <div class="card mt-4">
+                <div class="card-header p-0 pt-1 border-bottom-0">
+                    <ul class="nav nav-tabs" id="hostDetailTabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="ssh-tab" data-toggle="pill" href="#ssh" role="tab" aria-controls="ssh" aria-selected="true">
+                                <i class="fas fa-terminal"></i> SSH凭证
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="command-history-tab" data-toggle="pill" href="#command-history" role="tab" aria-controls="command-history" aria-selected="false">
+                                <i class="fas fa-history"></i> 命令执行历史
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="logs-tab" data-toggle="pill" href="#logs" role="tab" aria-controls="logs" aria-selected="false">
+                                <i class="fas fa-file-alt"></i> 日志
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="hostDetailTabContent">
+                        <!-- SSH凭证标签页 -->
+                        <div class="tab-pane fade show active" id="ssh" role="tabpanel" aria-labelledby="ssh-tab">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5>SSH凭证管理</h5>
+                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addCredentialModal">
+                                    <i class="fas fa-plus"></i> 添加凭证
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>凭证名称</th>
+                                            <th>用户名</th>
+                                            <th>认证类型</th>
+                                            <th>创建时间</th>
+                                            <th style="width: 120px">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sshCredentialsTableBody">
+                                        <!-- SSH凭证列表将通过AJAX加载 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- 命令执行历史标签页 -->
+                        <div class="tab-pane fade" id="command-history" role="tabpanel" aria-labelledby="command-history-tab">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5>命令执行历史</h5>
+                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#executeCommandModal">
+                                    <i class="fas fa-terminal"></i> 执行命令
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>命令内容</th>
+                                            <th>执行类型</th>
+                                            <th>状态</th>
+                                            <th>执行时间</th>
+                                            <th>执行人</th>
+                                            <th style="width: 120px">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="commandHistoryTableBody">
+                                        <!-- 命令执行历史将通过AJAX加载 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- 日志标签页 -->
+                        <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5>主机操作日志</h5>
+                                <div class="input-group" style="width: 300px;">
+                                    <input type="text" class="form-control form-control-sm" id="logSearchInput" placeholder="搜索日志内容">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-sm btn-default" id="logSearchBtn">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>操作类型</th>
+                                            <th>详情</th>
+                                            <th>操作人</th>
+                                            <th>操作时间</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="logsTableBody">
+                                        <!-- 日志列表将通过AJAX加载 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑主机模态框 -->
+<div class="modal fade" id="editHostModal" tabindex="-1" role="dialog" aria-labelledby="editHostModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editHostModalLabel">编辑主机</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editHostForm">
+                    <div class="form-group">
+                        <label for="hostname">主机名 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="hostname" name="hostname" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ip_address">IP地址 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="ip_address" name="ip_address" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="port">SSH端口</label>
+                        <input type="number" class="form-control" id="port" name="port" value="22">
+                    </div>
+                    <div class="form-group">
+                        <label for="os_type">操作系统</label>
+                        <select class="form-control" id="os_type" name="os_type">
+                            <option value="linux">Linux</option>
+                            <option value="windows">Windows</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="host_groups">主机组</label>
+                        <select class="form-control select2" id="host_groups" name="host_groups" multiple>
+                            <!-- 主机组选项将通过AJAX加载 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="host_tags">标签</label>
+                        <select class="form-control select2" id="host_tags" name="host_tags" multiple>
+                            <!-- 标签选项将通过AJAX加载 -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">描述</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveHostBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加SSH凭证模态框 -->
+<div class="modal fade" id="addCredentialModal" tabindex="-1" role="dialog" aria-labelledby="addCredentialModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCredentialModalLabel">添加SSH凭证</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addCredentialForm">
+                    <div class="form-group">
+                        <label>选择凭证方式</label>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" id="existingCredential" name="credential_option" value="existing" class="custom-control-input" checked>
+                            <label class="custom-control-label" for="existingCredential">使用现有凭证</label>
+                        </div>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" id="newCredential" name="credential_option" value="new" class="custom-control-input">
+                            <label class="custom-control-label" for="newCredential">创建新凭证</label>
+                        </div>
+                    </div>
+                    
+                    <div id="existingCredentialSection">
+                        <div class="form-group">
+                            <label for="existing_credential_id">选择凭证 <span class="text-danger">*</span></label>
+                            <select class="form-control" id="existing_credential_id" name="existing_credential_id">
+                                <option value="">请选择凭证</option>
+                                <!-- 凭证选项将通过AJAX加载 -->
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="newCredentialSection" style="display: none;">
+                        <div class="form-group">
+                            <label for="name">凭证名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name">
+                            <small class="form-text text-muted">用于标识此凭证的名称，如"生产环境root用户"</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="username">用户名 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="username" name="username">
+                        </div>
+                        <div class="form-group">
+                            <label>认证类型 <span class="text-danger">*</span></label>
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="authTypePassword" name="auth_type" value="password" class="custom-control-input" checked>
+                                <label class="custom-control-label" for="authTypePassword">密码认证</label>
+                            </div>
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="authTypeKey" name="auth_type" value="key" class="custom-control-input">
+                                <label class="custom-control-label" for="authTypeKey">密钥认证</label>
+                            </div>
+                        </div>
+                        <div id="passwordAuthSection">
+                            <div class="form-group">
+                                <label for="password">密码 <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" name="password">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary toggle-password" type="button">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="keyAuthSection" style="display: none;">
+                            <div class="form-group">
+                                <label for="private_key">私钥 <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="private_key" name="private_key" rows="5"></textarea>
+                                <small class="form-text text-muted">请粘贴私钥内容，通常以 -----BEGIN RSA PRIVATE KEY----- 开头</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="passphrase">私钥密码</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="passphrase" name="passphrase">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary toggle-password" type="button">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">如果私钥没有密码保护，请留空</small>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="description">描述</label>
+                            <textarea class="form-control" id="credential_description" name="description" rows="3"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-info" id="testCredentialBtn">测试连接</button>
+                <button type="button" class="btn btn-primary" id="saveCredentialBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 执行命令模态框 -->
+<div class="modal fade" id="executeCommandModal" tabindex="-1" role="dialog" aria-labelledby="executeCommandModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="executeCommandModalLabel">执行命令</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="executeCommandForm">
+                    <div class="form-group">
+                        <label>执行方式</label>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" id="executeTypeCommand" name="execute_type" value="command" class="custom-control-input" checked>
+                            <label class="custom-control-label" for="executeTypeCommand">直接执行命令</label>
+                        </div>
+                        <div class="custom-control custom-radio">
+                            <input type="radio" id="executeTypeTemplate" name="execute_type" value="template" class="custom-control-input">
+                            <label class="custom-control-label" for="executeTypeTemplate">使用命令模板</label>
+                        </div>
+                    </div>
+                    
+                    <div id="commandSection">
+                        <div class="form-group">
+                            <label for="command_content">命令内容 <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="command_content" name="command_content" rows="5" placeholder="输入要执行的命令"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div id="templateSection" style="display: none;">
+                        <div class="form-group">
+                            <label for="command_template_id">命令模板 <span class="text-danger">*</span></label>
+                            <select class="form-control" id="command_template_id" name="command_template_id">
+                                <option value="">请选择命令模板</option>
+                                <!-- 命令模板选项将通过AJAX加载 -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="template_params">模板参数</label>
+                            <div id="templateParamsContainer">
+                                <!-- 模板参数将根据所选模板动态生成 -->
+                                <div class="alert alert-info">
+                                    请先选择命令模板
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="credential_id">SSH凭证 <span class="text-danger">*</span></label>
+                        <select class="form-control" id="credential_id" name="credential_id">
+                            <option value="">请选择SSH凭证</option>
+                            <!-- SSH凭证选项将通过AJAX加载 -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="check_dangerous" name="check_dangerous" checked>
+                            <label class="custom-control-label" for="check_dangerous">执行前检查危险命令</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="executeCommandBtn">执行</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 命令执行详情模态框 -->
+<div class="modal fade" id="commandDetailModal" tabindex="-1" role="dialog" aria-labelledby="commandDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="commandDetailModalLabel">命令执行详情</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="commandDetailContent">
+                    <!-- 命令执行详情将通过AJAX加载 -->
+                </div>
+                <div class="mt-4">
+                    <h5>执行日志</h5>
+                    <pre id="executionLog" class="p-3 bg-dark text-light" style="max-height: 300px; overflow-y: auto;"></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-danger" id="cancelExecutionBtn" style="display: none;">取消执行</button>
+                <button type="button" class="btn btn-primary" id="rerunCommandBtn">重新执行</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // 全局变量
+    var hostId = {{ host_id }}; // 从后端传递的主机ID
+    var monitorCharts = {};
+    var currentTimeRange = '1h';
+    
+    $(function () {
+        // 初始化Select2
+        $('.select2').select2({
+            theme: 'bootstrap4'
+        });
+        
+        // 加载主机基本信息
+        loadHostBasicInfo();
+        
+        // 加载主机系统信息
+        loadHostSystemInfo();
+        
+        // 加载监控数据
+        loadMonitorData(currentTimeRange);
+        
+        // 加载SSH凭证列表
+        loadSSHCredentials();
+        
+        // 加载命令执行历史
+        loadCommandHistory();
+        
+        // 加载日志列表
+        loadLogs();
+        
+        // 加载主机组和标签选项
+        loadHostGroupOptions();
+        loadHostTagOptions();
+        
+        // 加载凭证选项
+        loadCredentialOptions();
+        
+        // 加载命令模板选项
+        loadCommandTemplateOptions();
+        
+        // 监控时间范围切换事件
+        $('.dropdown-item[data-range]').click(function(e) {
+            e.preventDefault();
+            var range = $(this).data('range');
+            currentTimeRange = range;
+            $('#monitorTimeRange').text($(this).text());
+            loadMonitorData(range);
+        });
+        
+        // 刷新监控按钮点击事件
+        $('#refreshMonitorBtn').click(function() {
+            loadMonitorData(currentTimeRange);
+        });
+        
+        // 刷新系统信息按钮点击事件
+        $('#refreshSystemInfoBtn').click(function() {
+            loadHostSystemInfo();
+        });
+        
+        // 保存主机按钮点击事件
+        $('#saveHostBtn').click(function() {
+            saveHost();
+        });
+        
+        // 凭证选项切换事件
+        $('input[name="credential_option"]').change(function() {
+            if ($(this).val() === 'existing') {
+                $('#existingCredentialSection').show();
+                $('#newCredentialSection').hide();
+            } else {
+                $('#existingCredentialSection').hide();
+                $('#newCredentialSection').show();
+            }
+        });
+        
+        // 认证类型切换事件
+        $('input[name="auth_type"]').change(function() {
+            if ($(this).val() === 'password') {
+                $('#passwordAuthSection').show();
+                $('#keyAuthSection').hide();
+            } else {
+                $('#passwordAuthSection').hide();
+                $('#keyAuthSection').show();
+            }
+        });
+        
+        // 密码显示/隐藏切换
+        $('.toggle-password').click(function() {
+            var input = $(this).closest('.input-group').find('input');
+            if (input.attr('type') === 'password') {
+                input.attr('type', 'text');
+                $(this).find('i').removeClass('fa-eye').addClass('fa-eye-slash');
+            } else {
+                input.attr('type', 'password');
+                $(this).find('i').removeClass('fa-eye-slash').addClass('fa-eye');
+            }
+        });
+        
+        // 保存凭证按钮点击事件
+        $('#saveCredentialBtn').click(function() {
+            saveCredential();
+        });
+        
+        // 测试凭证按钮点击事件
+        $('#testCredentialBtn').click(function() {
+            testCredential();
+        });
+        
+        // 执行方式切换事件
+        $('input[name="execute_type"]').change(function() {
+            if ($(this).val() === 'command') {
+                $('#commandSection').show();
+                $('#templateSection').hide();
+            } else {
+                $('#commandSection').hide();
+                $('#templateSection').show();
+            }
+        });
+        
+        // 命令模板选择事件
+        $('#command_template_id').change(function() {
+            loadTemplateParams();
+        });
+        
+        // 执行命令按钮点击事件
+        $('#executeCommandBtn').click(function() {
+            executeCommand();
+        });
+        
+        // 取消执行按钮点击事件
+        $('#cancelExecutionBtn').click(function() {
+            cancelExecution();
+        });
+        
+        // 重新执行按钮点击事件
+        $('#rerunCommandBtn').click(function() {
+            rerunCommand();
+        });
+        
+        // 日志搜索按钮点击事件
+        $('#logSearchBtn').click(function() {
+            loadLogs();
+        });
+    });
+    
+    // 加载主机基本信息
+    function loadHostBasicInfo() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/hosts/' + hostId + '/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderHostBasicInfo(response);
+        //         fillHostForm(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载主机信息失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            id: hostId,
+            hostname: 'web-server-01',
+            ip_address: '192.168.1.101',
+            port: 22,
+            os_type: 'linux',
+            status: 'online',
+            host_groups: [
+                {id: 1, name: '生产环境'},
+                {id: 2, name: 'Web服务器'}
+            ],
+            host_tags: [
+                {id: 1, name: 'Nginx'},
+                {id: 3, name: 'CentOS'}
+            ],
+            description: '生产环境Web服务器，运行Nginx和PHP应用',
+            created_by: '管理员',
+            created_at: '2023-06-01T09:00:00Z',
+            last_check: '2023-06-03T10:30:00Z'
+        };
+        
+        renderHostBasicInfo(mockData);
+        fillHostForm(mockData);
+    }
+    
+    // 渲染主机基本信息
+    function renderHostBasicInfo(host) {
+        var statusClass = '';
+        var statusText = '';
+        
+        switch(host.status) {
+            case 'online':
+                statusClass = 'badge-success';
+                statusText = '在线';
+                break;
+            case 'offline':
+                statusClass = 'badge-danger';
+                statusText = '离线';
+                break;
+            default:
+                statusClass = 'badge-secondary';
+                statusText = '未知';
+        }
+        
+        var osTypeIcon = host.os_type === 'linux' ? 'fa-linux' : (host.os_type === 'windows' ? 'fa-windows' : 'fa-server');
+        var createdAt = new Date(host.created_at).toLocaleString();
+        var lastCheck = new Date(host.last_check).toLocaleString();
+        
+        var groupsHtml = '';
+        $.each(host.host_groups, function(index, group) {
+            groupsHtml += '<span class="badge badge-info mr-1">' + group.name + '</span>';
+        });
+        
+        var tagsHtml = '';
+        $.each(host.host_tags, function(index, tag) {
+            tagsHtml += '<span class="badge badge-secondary mr-1">' + tag.name + '</span>';
+        });
+        
+        var infoHtml = '<div class="text-center mb-3">' +
+            '<div class="d-inline-block bg-light rounded-circle p-3">' +
+                '<i class="fas ' + osTypeIcon + ' fa-3x text-primary"></i>' +
+            '</div>' +
+            '<h4 class="mt-2">' + host.hostname + '</h4>' +
+            '<span class="badge ' + statusClass + '">' + statusText + '</span>' +
+        '</div>' +
+        '<div class="table-responsive">' +
+            '<table class="table table-sm">' +
+                '<tr>' +
+                    '<th style="width: 120px">IP地址:</th>' +
+                    '<td>' + host.ip_address + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>SSH端口:</th>' +
+                    '<td>' + host.port + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>操作系统:</th>' +
+                    '<td>' + (host.os_type === 'linux' ? 'Linux' : (host.os_type === 'windows' ? 'Windows' : '其他')) + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>主机组:</th>' +
+                    '<td>' + (groupsHtml || '<span class="text-muted">无</span>') + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>标签:</th>' +
+                    '<td>' + (tagsHtml || '<span class="text-muted">无</span>') + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>描述:</th>' +
+                    '<td>' + (host.description || '<span class="text-muted">无</span>') + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>创建人:</th>' +
+                    '<td>' + host.created_by + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>创建时间:</th>' +
+                    '<td>' + createdAt + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>最后检查:</th>' +
+                    '<td>' + lastCheck + '</td>' +
+                '</tr>' +
+            '</table>' +
+        '</div>';
+        
+        $('#hostBasicInfo').html(infoHtml);
+    }
+    
+    // 填充主机表单
+    function fillHostForm(host) {
+        $('#hostname').val(host.hostname);
+        $('#ip_address').val(host.ip_address);
+        $('#port').val(host.port);
+        $('#os_type').val(host.os_type);
+        $('#description').val(host.description);
+        
+        // 设置主机组和标签
+        var groupIds = host.host_groups.map(function(group) { return group.id; });
+        var tagIds = host.host_tags.map(function(tag) { return tag.id; });
+        
+        $('#host_groups').val(groupIds).trigger('change');
+        $('#host_tags').val(tagIds).trigger('change');
+    }
+    
+    // 加载主机系统信息
+    function loadHostSystemInfo() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/hosts/' + hostId + '/system-info/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderHostSystemInfo(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载系统信息失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            os: {
+                name: 'CentOS Linux',
+                version: '7.9.2009',
+                kernel: '3.10.0-1160.el7.x86_64'
+            },
+            cpu: {
+                model: 'Intel(R) Xeon(R) CPU E5-2680 v3 @ 2.50GHz',
+                cores: 4,
+                usage: 23.5
+            },
+            memory: {
+                total: 8192,
+                used: 3584,
+                free: 4608,
+                usage: 43.8
+            },
+            disk: {
+                total: 102400,
+                used: 45056,
+                free: 57344,
+                usage: 44.0
+            },
+            uptime: '15 days, 7 hours, 23 minutes',
+            last_update: '2023-06-03T10:30:00Z'
+        };
+        
+        renderHostSystemInfo(mockData);
+    }
+    
+    // 渲染主机系统信息
+    function renderHostSystemInfo(systemInfo) {
+        var lastUpdate = new Date(systemInfo.last_update).toLocaleString();
+        
+        var infoHtml = '<div class="table-responsive">' +
+            '<table class="table table-sm">' +
+                '<tr>' +
+                    '<th style="width: 120px">操作系统:</th>' +
+                    '<td>' + systemInfo.os.name + ' ' + systemInfo.os.version + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>内核版本:</th>' +
+                    '<td>' + systemInfo.os.kernel + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>CPU型号:</th>' +
+                    '<td>' + systemInfo.cpu.model + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>CPU核心数:</th>' +
+                    '<td>' + systemInfo.cpu.cores + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>CPU使用率:</th>' +
+                    '<td>' +
+                        '<div class="progress">' +
+                            '<div class="progress-bar bg-' + getProgressBarColor(systemInfo.cpu.usage) + '" role="progressbar" style="width: ' + systemInfo.cpu.usage + '%" aria-valuenow="' + systemInfo.cpu.usage + '" aria-valuemin="0" aria-valuemax="100">' + systemInfo.cpu.usage + '%</div>' +
+                        '</div>' +
+                    '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>内存:</th>' +
+                    '<td>' +
+                        '<div class="progress">' +
+                            '<div class="progress-bar bg-' + getProgressBarColor(systemInfo.memory.usage) + '" role="progressbar" style="width: ' + systemInfo.memory.usage + '%" aria-valuenow="' + systemInfo.memory.usage + '" aria-valuemin="0" aria-valuemax="100">' + systemInfo.memory.usage + '%</div>' +
+                        '</div>' +
+                        '<small class="text-muted">' + formatSize(systemInfo.memory.used) + ' / ' + formatSize(systemInfo.memory.total) + '</small>' +
+                    '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>磁盘:</th>' +
+                    '<td>' +
+                        '<div class="progress">' +
+                            '<div class="progress-bar bg-' + getProgressBarColor(systemInfo.disk.usage) + '" role="progressbar" style="width: ' + systemInfo.disk.usage + '%" aria-valuenow="' + systemInfo.disk.usage + '" aria-valuemin="0" aria-valuemax="100">' + systemInfo.disk.usage + '%</div>' +
+                        '</div>' +
+                        '<small class="text-muted">' + formatSize(systemInfo.disk.used) + ' / ' + formatSize(systemInfo.disk.total) + '</small>' +
+                    '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>运行时间:</th>' +
+                    '<td>' + systemInfo.uptime + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>更新时间:</th>' +
+                    '<td>' + lastUpdate + '</td>' +
+                '</tr>' +
+            '</table>' +
+        '</div>';
+        
+        $('#hostSystemInfo').html(infoHtml);
+    }
+    
+    // 获取进度条颜色
+    function getProgressBarColor(usage) {
+        if (usage < 50) {
+            return 'success';
+        } else if (usage < 80) {
+            return 'warning';
+        } else {
+            return 'danger';
+        }
+    }
+    
+    // 格式化大小
+    function formatSize(size) {
+        if (size < 1024) {
+            return size + ' MB';
+        } else {
+            return (size / 1024).toFixed(2) + ' GB';
+        }
+    }
+    
+    // 加载监控数据
+    function loadMonitorData(timeRange) {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/hosts/' + hostId + '/monitor/',
+        //     type: 'GET',
+        //     data: {
+        //         time_range: timeRange
+        //     },
+        //     success: function(response) {
+        //         renderMonitorCharts(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载监控数据失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = generateMockMonitorData(timeRange);
+        renderMonitorCharts(mockData);
+    }
+    
+    // 生成模拟监控数据
+    function generateMockMonitorData(timeRange) {
+        var now = new Date();
+        var dataPoints = 0;
+        var interval = 0;
+        
+        switch(timeRange) {
+            case '1h':
+                dataPoints = 60;
+                interval = 60 * 1000; // 1分钟
+                break;
+            case '6h':
+                dataPoints = 72;
+                interval = 5 * 60 * 1000; // 5分钟
+                break;
+            case '24h':
+                dataPoints = 96;
+                interval = 15 * 60 * 1000; // 15分钟
+                break;
+            case '7d':
+                dataPoints = 168;
+                interval = 60 * 60 * 1000; // 1小时
+                break;
+        }
+        
+        var timestamps = [];
+        var cpuData = [];
+        var memoryData = [];
+        var diskData = [];
+        var networkInData = [];
+        var networkOutData = [];
+        
+        for (var i = dataPoints - 1; i >= 0; i--) {
+            var timestamp = new Date(now.getTime() - i * interval);
+            timestamps.push(timestamp.toLocaleTimeString());
+            
+            // 生成随机数据
+            cpuData.push(Math.floor(Math.random() * 40) + 10); // 10-50%
+            memoryData.push(Math.floor(Math.random() * 30) + 30); // 30-60%
+            diskData.push(Math.floor(Math.random() * 10) + 40); // 40-50%
+            networkInData.push(Math.floor(Math.random() * 50) + 10); // 10-60 MB/s
+            networkOutData.push(Math.floor(Math.random() * 30) + 5); // 5-35 MB/s
+        }
+        
+        return {
+            timestamps: timestamps,
+            cpu: cpuData,
+            memory: memoryData,
+            disk: diskData,
+            network_in: networkInData,
+            network_out: networkOutData
+        };
+    }
+    
+    // 渲染监控图表
+    function renderMonitorCharts(data) {
+        // CPU使用率图表
+        renderChart('cpuChart', 'CPU使用率', data.timestamps, [{
+            label: 'CPU使用率',
+            data: data.cpu,
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.4
+        }], '%');
+        
+        // 内存使用率图表
+        renderChart('memoryChart', '内存使用率', data.timestamps, [{
+            label: '内存使用率',
+            data: data.memory,
+            borderColor: 'rgb(54, 162, 235)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            tension: 0.4
+        }], '%');
+        
+        // 磁盘使用率图表
+        renderChart('diskChart', '磁盘使用率', data.timestamps, [{
+            label: '磁盘使用率',
+            data: data.disk,
+            borderColor: 'rgb(153, 102, 255)',
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            tension: 0.4
+        }], '%');
+        
+        // 网络流量图表
+        renderChart('networkChart', '网络流量', data.timestamps, [
+            {
+                label: '入站流量',
+                data: data.network_in,
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                tension: 0.4
+            },
+            {
+                label: '出站流量',
+                data: data.network_out,
+                borderColor: 'rgb(255, 159, 64)',
+                backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                tension: 0.4
+            }
+        ], 'MB/s');
+    }
+    
+    // 渲染图表
+    function renderChart(canvasId, title, labels, datasets, unit) {
+        var ctx = document.getElementById(canvasId).getContext('2d');
+        
+        // 销毁现有图表
+        if (monitorCharts[canvasId]) {
+            monitorCharts[canvasId].destroy();
+        }
+        
+        // 创建新图表
+        monitorCharts[canvasId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: title
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y + ' ' + unit;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value + ' ' + unit;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // 加载SSH凭证列表
+    function loadSSHCredentials() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/hosts/' + hostId + '/credentials/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderSSHCredentials(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载SSH凭证列表失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [
+            {
+                id: 1,
+                name: '生产环境root用户',
+                username: 'root',
+                auth_type: 'password',
+                created_at: '2023-06-01T09:00:00Z'
+            },
+            {
+                id: 2,
+                name: '部署用户',
+                username: 'deploy',
+                auth_type: 'key',
+                created_at: '2023-06-01T10:00:00Z'
+            }
+        ];
+        
+        renderSSHCredentials(mockData);
+    }
+    
+    // 渲染SSH凭证列表
+    function renderSSHCredentials(credentials) {
+        var tableBody = $('#sshCredentialsTableBody');
+        tableBody.empty();
+        
+        if (credentials.length === 0) {
+            tableBody.append('<tr><td colspan="5" class="text-center">暂无SSH凭证</td></tr>');
+            return;
+        }
+        
+        // 渲染凭证数据
+        $.each(credentials, function(index, credential) {
+            var createdAt = new Date(credential.created_at).toLocaleString();
+            var authTypeText = credential.auth_type === 'password' ? '密码认证' : '密钥认证';
+            var authTypeIcon = credential.auth_type === 'password' ? 'fa-key' : 'fa-file-alt';
+            
+            var row = '<tr>' +
+                '<td>' + credential.name + '</td>' +
+                '<td>' + credential.username + '</td>' +
+                '<td><i class="fas ' + authTypeIcon + '"></i> ' + authTypeText + '</td>' +
+                '<td>' + createdAt + '</td>' +
+                '<td>' +
+                    '<button type="button" class="btn btn-sm btn-info test-credential" data-id="' + credential.id + '">' +
+                        '<i class="fas fa-plug"></i>' +
+                    '</button> ' +
+                    '<button type="button" class="btn btn-sm btn-primary edit-credential" data-id="' + credential.id + '">' +
+                        '<i class="fas fa-edit"></i>' +
+                    '</button> ' +
+                    '<button type="button" class="btn btn-sm btn-danger delete-credential" data-id="' + credential.id + '" data-name="' + credential.name + '">' +
+                        '<i class="fas fa-trash"></i>' +
+                    '</button>' +
+                '</td>' +
+            '</tr>';
+            
+            tableBody.append(row);
+        });
+        
+        // 绑定按钮事件
+        $('.view-command').click(function() {
+            var commandId = $(this).data('id');
+            viewCommandDetail(commandId);
+        });
+        
+        $('.cancel-command').click(function() {
+            var commandId = $(this).data('id');
+            cancelCommand(commandId);
+        });
+        
+        $('.rerun-command').click(function() {
+            var commandId = $(this).data('id');
+            rerunCommand(commandId);
+        });
+    }
+    
+    // 加载日志列表
+    function loadLogs() {
+        var searchTerm = $('#logSearchInput').val();
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/hosts/' + hostId + '/logs/',
+        //     type: 'GET',
+        //     data: {
+        //         search: searchTerm
+        //     },
+        //     success: function(response) {
+        //         renderLogs(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载日志列表失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [
+            {
+                id: 1,
+                action_type: 'create',
+                details: '创建主机',
+                user: '管理员',
+                created_at: '2023-06-01T09:00:00Z'
+            },
+            {
+                id: 2,
+                action_type: 'update',
+                details: '更新主机信息',
+                user: '管理员',
+                created_at: '2023-06-02T10:00:00Z'
+            },
+            {
+                id: 3,
+                action_type: 'command',
+                details: '执行命令: ls -la /var/www',
+                user: '管理员',
+                created_at: '2023-06-03T09:00:00Z'
+            },
+            {
+                id: 4,
+                action_type: 'command',
+                details: '执行命令: df -h',
+                user: '管理员',
+                created_at: '2023-06-03T09:30:00Z'
+            }
+        ];
+        
+        // 如果有搜索条件，过滤数据
+        if (searchTerm) {
+            mockData = mockData.filter(function(log) {
+                return log.details.toLowerCase().includes(searchTerm.toLowerCase());
+            });
+        }
+        
+        renderLogs(mockData);
+    }
+    
+    // 渲染日志列表
+    function renderLogs(logs) {
+        var tableBody = $('#logsTableBody');
+        tableBody.empty();
+        
+        if (logs.length === 0) {
+            tableBody.append('<tr><td colspan="4" class="text-center">暂无日志记录</td></tr>');
+            return;
+        }
+        
+        // 渲染日志数据
+        $.each(logs, function(index, log) {
+            var createdAt = new Date(log.created_at).toLocaleString();
+            var actionTypeIcon = '';
+            var actionTypeClass = '';
+            
+            switch(log.action_type) {
+                case 'create':
+                    actionTypeIcon = 'fa-plus';
+                    actionTypeClass = 'text-success';
+                    break;
+                case 'update':
+                    actionTypeIcon = 'fa-edit';
+                    actionTypeClass = 'text-primary';
+                    break;
+                case 'delete':
+                    actionTypeIcon = 'fa-trash';
+                    actionTypeClass = 'text-danger';
+                    break;
+                case 'command':
+                    actionTypeIcon = 'fa-terminal';
+                    actionTypeClass = 'text-info';
+                    break;
+                default:
+                    actionTypeIcon = 'fa-info-circle';
+                    actionTypeClass = 'text-secondary';
+            }
+            
+            var row = '<tr>' +
+                '<td><i class="fas ' + actionTypeIcon + ' ' + actionTypeClass + '"></i> ' + log.action_type + '</td>' +
+                '<td>' + log.details + '</td>' +
+                '<td>' + log.user + '</td>' +
+                '<td>' + createdAt + '</td>' +
+            '</tr>';
+            
+            tableBody.append(row);
+        });
+    }
+    
+    // 加载主机组选项
+    function loadHostGroupOptions() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/host-groups/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderHostGroupOptions(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载主机组选项失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [
+            {id: 1, name: '生产环境'},
+            {id: 2, name: 'Web服务器'},
+            {id: 3, name: '测试环境'},
+            {id: 4, name: '数据库服务器'}
+        ];
+        
+        renderHostGroupOptions(mockData);
+    }
+    
+    // 渲染主机组选项
+    function renderHostGroupOptions(groups) {
+        var select = $('#host_groups');
+        select.empty();
+        
+        $.each(groups, function(index, group) {
+            select.append('<option value="' + group.id + '">' + group.name + '</option>');
+        });
+    }
+    
+    // 加载主机标签选项
+    function loadHostTagOptions() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/host-tags/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderHostTagOptions(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载主机标签选项失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [
+            {id: 1, name: 'Nginx'},
+            {id: 2, name: 'MySQL'},
+            {id: 3, name: 'CentOS'},
+            {id: 4, name: 'Ubuntu'},
+            {id: 5, name: 'PHP'}
+        ];
+        
+        renderHostTagOptions(mockData);
+    }
+    
+    // 渲染主机标签选项
+    function renderHostTagOptions(tags) {
+        var select = $('#host_tags');
+        select.empty();
+        
+        $.each(tags, function(index, tag) {
+            select.append('<option value="' + tag.id + '">' + tag.name + '</option>');
+        });
+    }
+    
+    // 加载凭证选项
+    function loadCredentialOptions() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/ssh-credentials/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderCredentialOptions(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载凭证选项失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [
+            {id: 1, name: '生产环境root用户'},
+            {id: 2, name: '部署用户'}
+        ];
+        
+        renderCredentialOptions(mockData);
+    }
+    
+    // 渲染凭证选项
+    function renderCredentialOptions(credentials) {
+        var select = $('#existing_credential_id');
+        select.empty();
+        
+        select.append('<option value="">请选择凭证</option>');
+        
+        $.each(credentials, function(index, credential) {
+            select.append('<option value="' + credential.id + '">' + credential.name + '</option>');
+        });
+        
+        // 同时更新命令执行模态框中的凭证选择
+        var executeSelect = $('#credential_id');
+        executeSelect.empty();
+        
+        executeSelect.append('<option value="">请选择SSH凭证</option>');
+        
+        $.each(credentials, function(index, credential) {
+            executeSelect.append('<option value="' + credential.id + '">' + credential.name + '</option>');
+        });
+    }
+    
+    // 加载命令模板选项
+    function loadCommandTemplateOptions() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/commands/api/templates/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderCommandTemplateOptions(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载命令模板选项失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [
+            {id: 1, name: '检查磁盘空间', command_content: 'df -h', params: []},
+            {id: 2, name: '检查内存使用', command_content: 'free -m', params: []},
+            {id: 3, name: '检查进程', command_content: 'ps -ef | grep {process_name}', params: [
+                {name: 'process_name', description: '进程名称'}
+            ]},
+            {id: 4, name: '重启服务', command_content: 'systemctl restart {service_name}', params: [
+                {name: 'service_name', description: '服务名称'}
+            ]}
+        ];
+        
+        renderCommandTemplateOptions(mockData);
+    }
+    
+    // 渲染命令模板选项
+    function renderCommandTemplateOptions(templates) {
+        var select = $('#command_template_id');
+        select.empty();
+        
+        select.append('<option value="">请选择命令模板</option>');
+        
+        $.each(templates, function(index, template) {
+            select.append('<option value="' + template.id + '" data-params=\'" + JSON.stringify(template.params) + "\' data-content=\'"+template.command_content+"\'>" + template.name + '</option>');
+        });
+    }
+    
+    // 加载模板参数
+    function loadTemplateParams() {
+        var templateId = $('#command_template_id').val();
+        
+        if (!templateId) {
+            $('#templateParamsContainer').html('<div class="alert alert-info">请先选择命令模板</div>');
+            return;
+        }
+        
+        var selectedOption = $('#command_template_id option:selected');
+        var params = JSON.parse(selectedOption.data('params'));
+        var commandContent = selectedOption.data('content');
+        
+        if (params.length === 0) {
+            $('#templateParamsContainer').html('<div class="alert alert-success">此模板无需参数</div>');
+            return;
+        }
+        
+        var html = '<div class="alert alert-info">命令模板: <code>' + commandContent + '</code></div>';
+        
+        $.each(params, function(index, param) {
+            html += '<div class="form-group">' +
+                '<label for="param_' + param.name + '">' + param.description + ' <span class="text-danger">*</span></label>' +
+                '<input type="text" class="form-control" id="param_' + param.name + '" name="param_' + param.name + '" placeholder="请输入' + param.description + '">' +
+            '</div>';
+        });
+        
+        $('#templateParamsContainer').html(html);
+    }
+    
+    // 保存主机
+    function saveHost() {
+        var formData = $('#editHostForm').serialize();
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/hosts/' + hostId + '/',
+        //     type: 'PUT',
+        //     data: formData,
+        //     success: function(response) {
+        //         $('#editHostModal').modal('hide');
+        //         toastr.success('主机信息已更新');
+        //         loadHostBasicInfo();
+        //     },
+        //     error: function(error) {
+        //         toastr.error('更新主机信息失败');
+        //     }
+        // });
+        
+        // 模拟成功响应
+        $('#editHostModal').modal('hide');
+        toastr.success('主机信息已更新');
+        loadHostBasicInfo();
+    }
+    
+    // 保存凭证
+    function saveCredential() {
+        var credentialOption = $('input[name="credential_option"]:checked').val();
+        var formData;
+        
+        if (credentialOption === 'existing') {
+            formData = {
+                host_id: hostId,
+                credential_id: $('#existing_credential_id').val()
+            };
+            
+            // 验证表单
+            if (!formData.credential_id) {
+                toastr.error('请选择凭证');
+                return;
+            }
+            
+            // 模拟AJAX请求，实际项目中应该调用后端API
+            // $.ajax({
+            //     url: '/hosts/api/hosts/' + hostId + '/credentials/',
+            //     type: 'POST',
+            //     data: formData,
+            //     success: function(response) {
+            //         $('#addCredentialModal').modal('hide');
+            //         toastr.success('凭证已添加');
+            //         loadSSHCredentials();
+            //     },
+            //     error: function(error) {
+            //         toastr.error('添加凭证失败');
+            //     }
+            // });
+        } else {
+            formData = $('#addCredentialForm').serialize();
+            formData += '&host_id=' + hostId;
+            
+            // 验证表单
+            if (!$('#name').val()) {
+                toastr.error('请输入凭证名称');
+                return;
+            }
+            
+            if (!$('#username').val()) {
+                toastr.error('请输入用户名');
+                return;
+            }
+            
+            var authType = $('input[name="auth_type"]:checked').val();
+            
+            if (authType === 'password' && !$('#password').val()) {
+                toastr.error('请输入密码');
+                return;
+            }
+            
+            if (authType === 'key' && !$('#private_key').val()) {
+                toastr.error('请输入私钥');
+                return;
+            }
+            
+            // 模拟AJAX请求，实际项目中应该调用后端API
+            // $.ajax({
+            //     url: '/hosts/api/ssh-credentials/',
+            //     type: 'POST',
+            //     data: formData,
+            //     success: function(response) {
+            //         $('#addCredentialModal').modal('hide');
+            //         toastr.success('凭证已创建并添加');
+            //         loadSSHCredentials();
+            //         loadCredentialOptions();
+            //     },
+            //     error: function(error) {
+            //         toastr.error('创建凭证失败');
+            //     }
+            // });
+        }
+        
+        // 模拟成功响应
+        $('#addCredentialModal').modal('hide');
+        toastr.success('凭证已' + (credentialOption === 'existing' ? '添加' : '创建并添加'));
+        loadSSHCredentials();
+        if (credentialOption === 'new') {
+            loadCredentialOptions();
+        }
+    }
+    
+    // 测试凭证
+    function testCredential() {
+        var credentialOption = $('input[name="credential_option"]:checked').val();
+        var formData;
+        
+        if (credentialOption === 'existing') {
+            formData = {
+                host_id: hostId,
+                credential_id: $('#existing_credential_id').val()
+            };
+            
+            // 验证表单
+            if (!formData.credential_id) {
+                toastr.error('请选择凭证');
+                return;
+            }
+        } else {
+            formData = $('#addCredentialForm').serialize();
+            formData += '&host_id=' + hostId;
+            
+            // 验证表单
+            if (!$('#username').val()) {
+                toastr.error('请输入用户名');
+                return;
+            }
+            
+            var authType = $('input[name="auth_type"]:checked').val();
+            
+            if (authType === 'password' && !$('#password').val()) {
+                toastr.error('请输入密码');
+                return;
+            }
+            
+            if (authType === 'key' && !$('#private_key').val()) {
+                toastr.error('请输入私钥');
+                return;
+            }
+        }
+        
+        // 显示测试中提示
+        toastr.info('正在测试连接，请稍候...');
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/test-ssh-connection/',
+        //     type: 'POST',
+        //     data: formData,
+        //     success: function(response) {
+        //         if (response.success) {
+        //             toastr.success('连接测试成功');
+        //         } else {
+        //             toastr.error('连接测试失败: ' + response.message);
+        //         }
+        //     },
+        //     error: function(error) {
+        //         toastr.error('连接测试失败');
+        //     }
+        // });
+        
+        // 模拟成功响应
+        setTimeout(function() {
+            toastr.success('连接测试成功');
+        }, 1500);
+    }
+    
+    // 测试现有凭证
+    function testExistingCredential(credentialId) {
+        // 显示测试中提示
+        toastr.info('正在测试连接，请稍候...');
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/test-ssh-connection/',
+        //     type: 'POST',
+        //     data: {
+        //         host_id: hostId,
+        //         credential_id: credentialId
+        //     },
+        //     success: function(response) {
+        //         if (response.success) {
+        //             toastr.success('连接测试成功');
+        //         } else {
+        //             toastr.error('连接测试失败: ' + response.message);
+        //         }
+        //     },
+        //     error: function(error) {
+        //         toastr.error('连接测试失败');
+        //     }
+        // });
+        
+        // 模拟成功响应
+        setTimeout(function() {
+            toastr.success('连接测试成功');
+        }, 1500);
+    }
+    
+    // 编辑凭证
+    function editCredential(credentialId) {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/hosts/api/ssh-credentials/' + credentialId + '/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         fillCredentialForm(response);
+        //         $('#addCredentialModal').modal('show');
+        //     },
+        //     error: function(error) {
+        //         toastr.error('获取凭证信息失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            id: credentialId,
+            name: credentialId === 1 ? '生产环境root用户' : '部署用户',
+            username: credentialId === 1 ? 'root' : 'deploy',
+            auth_type: credentialId === 1 ? 'password' : 'key',
+            description: '用于' + (credentialId === 1 ? '系统管理' : '应用部署')
+        };
+        
+        fillCredentialForm(mockData);
+        $('#addCredentialModal').modal('show');
+    }
+    
+    // 填充凭证表单
+    function fillCredentialForm(credential) {
+        // 切换到创建新凭证选项
+        $('#newCredential').prop('checked', true).trigger('change');
+        
+        // 填充表单字段
+        $('#name').val(credential.name);
+        $('#username').val(credential.username);
+        $('#credential_description').val(credential.description);
+        
+        // 设置认证类型
+        if (credential.auth_type === 'password') {
+            $('#authTypePassword').prop('checked', true).trigger('change');
+        } else {
+            $('#authTypeKey').prop('checked', true).trigger('change');
+        }
+    }
+    
+    // 删除凭证
+    function deleteCredential(credentialId, credentialName) {
+        if (confirm('确定要删除凭证 "' + credentialName + '" 吗？')) {
+            // 模拟AJAX请求，实际项目中应该调用后端API
+            // $.ajax({
+            //     url: '/hosts/api/hosts/' + hostId + '/credentials/' + credentialId + '/',
+            //     type: 'DELETE',
+            //     success: function(response) {
+            //         toastr.success('凭证已删除');
+            //         loadSSHCredentials();
+            //     },
+            //     error: function(error) {
+            //         toastr.error('删除凭证失败');
+            //     }
+            // });
+            
+            // 模拟成功响应
+            toastr.success('凭证已删除');
+            loadSSHCredentials();
+        }
+    }
+    
+    // 执行命令
+    function executeCommand() {
+        var executeType = $('input[name="execute_type"]:checked').val();
+        var formData = $('#executeCommandForm').serialize();
+        formData += '&host_id=' + hostId;
+        
+        // 验证表单
+        if (executeType === 'command' && !$('#command_content').val()) {
+            toastr.error('请输入命令内容');
+            return;
+        }
+        
+        if (executeType === 'template' && !$('#command_template_id').val()) {
+            toastr.error('请选择命令模板');
+            return;
+        }
+        
+        if (!$('#credential_id').val()) {
+            toastr.error('请选择SSH凭证');
+            return;
+        }
+        
+        // 显示执行中提示
+        toastr.info('正在执行命令，请稍候...');
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/commands/api/executions/',
+        //     type: 'POST',
+        //     data: formData,
+        //     success: function(response) {
+        //         $('#executeCommandModal').modal('hide');
+        //         toastr.success('命令已提交执行');
+        //         loadCommandHistory();
+        //         viewCommandDetail(response.id);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('执行命令失败');
+        //     }
+        // });
+        
+        // 模拟成功响应
+        $('#executeCommandModal').modal('hide');
+        toastr.success('命令已提交执行');
+        loadCommandHistory();
+        
+        // 模拟新创建的命令ID
+        var newCommandId = 5;
+        setTimeout(function() {
+            viewCommandDetail(newCommandId);
+        }, 1000);
+    }
+    
+    // 查看命令详情
+    function viewCommandDetail(commandId) {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/commands/api/executions/' + commandId + '/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderCommandDetail(response);
+        //         $('#commandDetailModal').modal('show');
+        //         
+        //         // 如果命令正在执行中，加载日志并定时刷新
+        //         if (response.status === 'running') {
+        //             loadExecutionLogs(commandId);
+        //             startLogPolling(commandId);
+        //         } else {
+        //             loadExecutionLogs(commandId);
+        //         }
+        //     },
+        //     error: function(error) {
+        //         toastr.error('获取命令详情失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            id: commandId,
+            command_content: commandId <= 3 ? ['ls -la /var/www', 'df -h', 'systemctl restart nginx'][commandId - 1] : '检查磁盘空间',
+            execution_type: commandId <= 3 ? 'command' : 'template',
+            status: commandId === 4 ? 'running' : 'success',
+            executed_at: '2023-06-03T10:30:00Z',
+            executed_by: '管理员',
+            duration: commandId === 4 ? null : '2.5秒',
+            exit_code: commandId === 4 ? null : 0,
+            host: {
+                id: hostId,
+                hostname: 'web-server-01',
+                ip_address: '192.168.1.101'
+            },
+            credential: {
+                id: 1,
+                name: '生产环境root用户',
+                username: 'root'
+            }
+        };
+        
+        renderCommandDetail(mockData);
+        $('#commandDetailModal').modal('show');
+        
+        // 如果命令正在执行中，加载日志并定时刷新
+        if (mockData.status === 'running') {
+            loadExecutionLogs(commandId);
+            startLogPolling(commandId);
+        } else {
+            loadExecutionLogs(commandId);
+        }
+    }
+    
+    // 渲染命令详情
+    function renderCommandDetail(command) {
+        var executedAt = new Date(command.executed_at).toLocaleString();
+        var executionTypeText = command.execution_type === 'command' ? '直接执行' : '模板执行';
+        
+        var statusClass = '';
+        var statusText = '';
+        
+        switch(command.status) {
+            case 'success':
+                statusClass = 'badge-success';
+                statusText = '成功';
+                break;
+            case 'failed':
+                statusClass = 'badge-danger';
+                statusText = '失败';
+                break;
+            case 'running':
+                statusClass = 'badge-info';
+                statusText = '执行中';
+                break;
+            case 'canceled':
+                statusClass = 'badge-warning';
+                statusText = '已取消';
+                break;
+            default:
+                statusClass = 'badge-secondary';
+                statusText = '未知';
+        }
+        
+        var detailHtml = '<div class="table-responsive">' +
+            '<table class="table table-sm">' +
+                '<tr>' +
+                    '<th style="width: 120px">命令内容:</th>' +
+                    '<td><pre class="mb-0">' + command.command_content + '</pre></td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>执行类型:</th>' +
+                    '<td>' + executionTypeText + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>状态:</th>' +
+                    '<td><span class="badge ' + statusClass + '">' + statusText + '</span></td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>目标主机:</th>' +
+                    '<td>' + command.host.hostname + ' (' + command.host.ip_address + ')</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>SSH凭证:</th>' +
+                    '<td>' + command.credential.name + ' (' + command.credential.username + ')</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>执行时间:</th>' +
+                    '<td>' + executedAt + '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<th>执行人:</th>' +
+                    '<td>' + command.executed_by + '</td>' +
+                '</tr>';
+                
+        if (command.duration) {
+            detailHtml += '<tr>' +
+                '<th>执行耗时:</th>' +
+                '<td>' + command.duration + '</td>' +
+            '</tr>';
+        }
+                
+        if (command.exit_code !== null) {
+            detailHtml += '<tr>' +
+                '<th>退出码:</th>' +
+                '<td>' + command.exit_code + '</td>' +
+            '</tr>';
+        }
+                
+        detailHtml += '</table>' +
+        '</div>';
+        
+        $('#commandDetailContent').html(detailHtml);
+        
+        // 根据命令状态显示/隐藏按钮
+        if (command.status === 'running') {
+            $('#cancelExecutionBtn').show();
+        } else {
+            $('#cancelExecutionBtn').hide();
+        }
+    }
+    
+    // 加载执行日志
+    function loadExecutionLogs(commandId) {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/commands/api/executions/' + commandId + '/logs/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderExecutionLogs(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('获取执行日志失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [];
+        
+        if (commandId === 1) {
+            mockData = [
+                {id: 1, log_type: 'info', content: '开始执行命令: ls -la /var/www', created_at: '2023-06-03T09:00:00Z'},
+                {id: 2, log_type: 'output', content: 'total 16\ndrwxr-xr-x 4 www-data www-data 4096 Jun  1 10:00 .\ndrwxr-xr-x 14 root root 4096 May 30 08:00 ..\ndrwxr-xr-x 2 www-data www-data 4096 Jun  1 10:00 html\ndrwxr-xr-x 2 www-data www-data 4096 Jun  1 10:00 logs', created_at: '2023-06-03T09:00:01Z'},
+                {id: 3, log_type: 'info', content: '命令执行完成，退出码: 0', created_at: '2023-06-03T09:00:02Z'}
+            ];
+        } else if (commandId === 2) {
+            mockData = [
+                {id: 4, log_type: 'info', content: '开始执行命令: df -h', created_at: '2023-06-03T09:30:00Z'},
+                {id: 5, log_type: 'output', content: 'Filesystem      Size  Used Avail Use% Mounted on\n/dev/sda1        30G   15G   15G  50% /\n/dev/sda2       100G   40G   60G  40% /data', created_at: '2023-06-03T09:30:01Z'},
+                {id: 6, log_type: 'info', content: '命令执行完成，退出码: 0', created_at: '2023-06-03T09:30:02Z'}
+            ];
+        } else if (commandId === 3) {
+            mockData = [
+                {id: 7, log_type: 'info', content: '开始执行命令: systemctl restart nginx', created_at: '2023-06-03T10:00:00Z'},
+                {id: 8, log_type: 'output', content: '', created_at: '2023-06-03T10:00:01Z'},
+                {id: 9, log_type: 'info', content: '命令执行完成，退出码: 0', created_at: '2023-06-03T10:00:02Z'}
+            ];
+        } else if (commandId === 4) {
+            mockData = [
+                {id: 10, log_type: 'info', content: '开始执行命令: df -h', created_at: '2023-06-03T10:30:00Z'},
+                {id: 11, log_type: 'output', content: 'Filesystem      Size  Used Avail Use% Mounted on\n/dev/sda1        30G   15G   15G  50% /\n/dev/sda2       100G   40G   60G  40% /data', created_at: '2023-06-03T10:30:01Z'}
+            ];
+        } else {
+            mockData = [
+                {id: 12, log_type: 'info', content: '开始执行命令...', created_at: new Date().toISOString()}
+            ];
+        }
+        
+        renderExecutionLogs(mockData);
+    }
+    
+    // 渲染执行日志
+    function renderExecutionLogs(logs) {
+        var logHtml = '';
+        
+        if (logs.length === 0) {
+            logHtml = '<div class="text-muted">暂无日志</div>';
+        } else {
+            $.each(logs, function(index, log) {
+                var createdAt = new Date(log.created_at).toLocaleTimeString();
+                var logClass = '';
+                
+                switch(log.log_type) {
+                    case 'info':
+                        logClass = 'text-info';
+                        break;
+                    case 'error':
+                        logClass = 'text-danger';
+                        break;
+                    case 'warning':
+                        logClass = 'text-warning';
+                        break;
+                    default:
+                        logClass = 'text-light';
+                }
+                
+                logHtml += '<div class="' + logClass + '">[' + createdAt + '] ' + log.content + '</div>';
+            });
+        }
+        
+        $('#executionLog').html(logHtml);
+        
+        // 滚动到日志底部
+        var logContainer = document.getElementById('executionLog');
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+    
+    // 开始日志轮询
+    var logPollingInterval;
+    function startLogPolling(commandId) {
+        // 清除现有轮询
+        if (logPollingInterval) {
+            clearInterval(logPollingInterval);
+        }
+        
+        // 设置新轮询
+        logPollingInterval = setInterval(function() {
+            // 模拟AJAX请求，实际项目中应该调用后端API
+            // $.ajax({
+            //     url: '/commands/api/executions/' + commandId + '/',
+            //     type: 'GET',
+            //     success: function(response) {
+            //         renderCommandDetail(response);
+            //         
+            //         // 如果命令已完成，停止轮询
+            //         if (response.status !== 'running') {
+            //             clearInterval(logPollingInterval);
+            //         }
+            //         
+            //         // 加载最新日志
+            //         loadExecutionLogs(commandId);
+            //     },
+            //     error: function(error) {
+            //         clearInterval(logPollingInterval);
+            //         toastr.error('获取命令状态失败');
+            //     }
+            // });
+            
+            // 模拟数据 - 假设5秒后命令执行完成
+            var mockData = {
+                id: commandId,
+                command_content: '检查磁盘空间',
+                execution_type: 'template',
+                status: 'success',
+                executed_at: '2023-06-03T10:30:00Z',
+                executed_by: '管理员',
+                duration: '5.2秒',
+                exit_code: 0,
+                host: {
+                    id: hostId,
+                    hostname: 'web-server-01',
+                    ip_address: '192.168.1.101'
+                },
+                credential: {
+                    id: 1,
+                    name: '生产环境root用户',
+                    username: 'root'
+                }
+            };
+            
+            renderCommandDetail(mockData);
+            
+            // 模拟命令完成后的日志
+            var mockLogs = [
+                {id: 10, log_type: 'info', content: '开始执行命令: df -h', created_at: '2023-06-03T10:30:00Z'},
+                {id: 11, log_type: 'output', content: 'Filesystem      Size  Used Avail Use% Mounted on\n/dev/sda1        30G   15G   15G  50% /\n/dev/sda2       100G   40G   60G  40% /data', created_at: '2023-06-03T10:30:01Z'},
+                {id: 12, log_type: 'info', content: '命令执行完成，退出码: 0', created_at: '2023-06-03T10:30:05Z'}
+            ];
+            
+            renderExecutionLogs(mockLogs);
+            
+            // 停止轮询
+            clearInterval(logPollingInterval);
+        }, 5000); // 每5秒轮询一次
+    }
+    
+    // 取消命令执行
+    function cancelCommand(commandId) {
+        if (confirm('确定要取消此命令的执行吗？')) {
+            // 模拟AJAX请求，实际项目中应该调用后端API
+            // $.ajax({
+            //     url: '/commands/api/executions/' + commandId + '/cancel/',
+            //     type: 'POST',
+            //     success: function(response) {
+            //         toastr.success('命令执行已取消');
+            //         loadCommandHistory();
+            //         $('#commandDetailModal').modal('hide');
+            //     },
+            //     error: function(error) {
+            //         toastr.error('取消命令执行失败');
+            //     }
+            // });
+            
+            // 模拟成功响应
+            toastr.success('命令执行已取消');
+            loadCommandHistory();
+            $('#commandDetailModal').modal('hide');
+        }
+    }
+    
+    // 取消执行
+    function cancelExecution() {
+        var commandId = $('#cancelExecutionBtn').data('command-id');
+        cancelCommand(commandId);
+    }
+    
+    // 重新执行命令
+    function rerunCommand() {
+        var commandId = $('#rerunCommandBtn').data('command-id');
+        
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/commands/api/executions/' + commandId + '/rerun/',
+        //     type: 'POST',
+        //     success: function(response) {
+        //         $('#commandDetailModal').modal('hide');
+        //         toastr.success('命令已重新执行');
+        //         loadCommandHistory();
+        //         viewCommandDetail(response.id);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('重新执行命令失败');
+        //     }
+        // });
+        
+        // 模拟成功响应
+        $('#commandDetailModal').modal('hide');
+        toastr.success('命令已重新执行');
+        loadCommandHistory();
+        
+        // 模拟新创建的命令ID
+        var newCommandId = 5;
+        setTimeout(function() {
+            viewCommandDetail(newCommandId);
+        }, 1000);
+    }
+</script>
+{% endblock %}
+钮事件
+        $('.test-credential').click(function() {
+            var credentialId = $(this).data('id');
+            testExistingCredential(credentialId);
+        });
+        
+        $('.edit-credential').click(function() {
+            var credentialId = $(this).data('id');
+            editCredential(credentialId);
+        });
+        
+        $('.delete-credential').click(function() {
+            var credentialId = $(this).data('id');
+            var credentialName = $(this).data('name');
+            deleteCredential(credentialId, credentialName);
+        });
+    }
+    
+    // 加载命令执行历史
+    function loadCommandHistory() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/commands/api/executions/',
+        //     type: 'GET',
+        //     data: {
+        //         host_id: hostId
+        //     },
+        //     success: function(response) {
+        //         renderCommandHistory(response);
+        //     },
+        //     error: function(error) {
+        //         toastr.error('加载命令执行历史失败');
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [
+            {
+                id: 1,
+                command_content: 'ls -la /var/www',
+                execution_type: 'command',
+                status: 'success',
+                executed_at: '2023-06-03T09:00:00Z',
+                executed_by: '管理员'
+            },
+            {
+                id: 2,
+                command_content: 'df -h',
+                execution_type: 'command',
+                status: 'success',
+                executed_at: '2023-06-03T09:30:00Z',
+                executed_by: '管理员'
+            },
+            {
+                id: 3,
+                command_content: 'systemctl restart nginx',
+                execution_type: 'command',
+                status: 'success',
+                executed_at: '2023-06-03T10:00:00Z',
+                executed_by: '管理员'
+            },
+            {
+                id: 4,
+                command_content: '检查磁盘空间',
+                execution_type: 'template',
+                status: 'running',
+                executed_at: '2023-06-03T10:30:00Z',
+                executed_by: '管理员'
+            }
+        ];
+        
+        renderCommandHistory(mockData);
+    }
+    
+    // 渲染命令执行历史
+    function renderCommandHistory(commands) {
+        var tableBody = $('#commandHistoryTableBody');
+        tableBody.empty();
+        
+        if (commands.length === 0) {
+            tableBody.append('<tr><td colspan="6" class="text-center">暂无命令执行历史</td></tr>');
+            return;
+        }
+        
+        // 渲染命令数据
+        $.each(commands, function(index, command) {
+            var executedAt = new Date(command.executed_at).toLocaleString();
+            var executionTypeText = command.execution_type === 'command' ? '直接执行' : '模板执行';
+            var executionTypeIcon = command.execution_type === 'command' ? 'fa-terminal' : 'fa-file-code';
+            
+            var statusClass = '';
+            var statusText = '';
+            
+            switch(command.status) {
+                case 'success':
+                    statusClass = 'badge-success';
+                    statusText = '成功';
+                    break;
+                case 'failed':
+                    statusClass = 'badge-danger';
+                    statusText = '失败';
+                    break;
+                case 'running':
+                    statusClass = 'badge-info';
+                    statusText = '执行中';
+                    break;
+                case 'canceled':
+                    statusClass = 'badge-warning';
+                    statusText = '已取消';
+                    break;
+                default:
+                    statusClass = 'badge-secondary';
+                    statusText = '未知';
+            }
+            
+            var row = '<tr>' +
+                '<td>' + command.command_content + '</td>' +
+                '<td><i class="fas ' + executionTypeIcon + '"></i> ' + executionTypeText + '</td>' +
+                '<td><span class="badge ' + statusClass + '">' + statusText + '</span></td>' +
+                '<td>' + executedAt + '</td>' +
+                '<td>' + command.executed_by + '</td>' +
+                '<td>' +
+                    '<button type="button" class="btn btn-sm btn-info view-command" data-id="' + command.id + '">' +
+                        '<i class="fas fa-eye"></i>' +
+                    '</button> ' +
+                    (command.status === 'running' ? 
+                    '<button type="button" class="btn btn-sm btn-warning cancel-command" data-id="' + command.id + '">' +
+                        '<i class="fas fa-stop"></i>' +
+                    '</button> ' : '') +
+                    '<button type="button" class="btn btn-sm btn-primary rerun-command" data-id="' + command.id + '">' +
+                        '<i class="fas fa-redo"></i>' +
+                    '</button>' +
+                '</td>' +
+            '</tr>';
+            
+            tableBody.append(row);
+        });
+        
+        // 绑定按

@@ -1,0 +1,603 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}批量命令执行{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mt-4 mb-4">批量命令执行</h1>
+    
+    <!-- 模式切换 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <a class="nav-link {% if execution_type == 'ansible' %}active{% endif %}" href="?type=ansible">Ansible模式</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if execution_type == 'shell' %}active{% endif %}" href="?type=shell">Shell模式</a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <form id="execution-form" method="post" action="{% url 'command-execution' %}">
+                {% csrf_token %}
+                <input type="hidden" name="execution_type" value="{{ execution_type }}">
+                
+                <!-- 目标主机选择 -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5>目标主机选择</h5>
+                        <ul class="nav nav-tabs" id="hostTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="tag-tab" data-bs-toggle="tab" data-bs-target="#tag-pane" type="button" role="tab">按标签选择</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="host-tab" data-bs-toggle="tab" data-bs-target="#host-pane" type="button" role="tab">按主机选择</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content border border-top-0 p-3" id="hostTabsContent">
+                            <div class="tab-pane fade show active" id="tag-pane" role="tabpanel" tabindex="0">
+                                <div class="row">
+                                    {% for tag in host_tags %}
+                                    <div class="col-md-3 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input tag-checkbox" type="checkbox" name="selected_tags" value="{{ tag.id }}" id="tag-{{ tag.id }}">
+                                            <label class="form-check-label" for="tag-{{ tag.id }}">
+                                                {{ tag.name }} ({{ tag.hosts.count }})
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="col-12">
+                                        <p class="text-muted">暂无主机标签</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="host-pane" role="tabpanel" tabindex="0">
+                                <div class="row">
+                                    {% for host in hosts %}
+                                    <div class="col-md-3 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input host-checkbox" type="checkbox" name="selected_hosts" value="{{ host.id }}" id="host-{{ host.id }}">
+                                            <label class="form-check-label" for="host-{{ host.id }}">
+                                                {{ host.hostname }} ({{ host.ip_address }})
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="col-12">
+                                        <p class="text-muted">暂无主机</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 已选主机 -->
+                        <div class="mt-3">
+                            <h6>已选主机: <span id="selected-hosts-count">0</span></h6>
+                            <div id="selected-hosts-list" class="border p-2 bg-light" style="min-height: 50px;">
+                                <span class="text-muted">未选择任何主机</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 命令内容 -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5>{% if execution_type == 'ansible' %}Playbook{% else %}Shell命令{% endif %}</h5>
+                        
+                        <!-- 工具栏 -->
+                        <div class="btn-toolbar mb-2">
+                            <div class="btn-group me-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-add-task">
+                                    <i class="bi bi-plus-circle"></i> 添加任务
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-add-var">
+                                    <i class="bi bi-braces"></i> 添加变量
+                                </button>
+                            </div>
+                            <div class="btn-group me-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-import-template">
+                                    <i class="bi bi-download"></i> 导入模板
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-save-template">
+                                    <i class="bi bi-save"></i> 保存模板
+                                </button>
+                            </div>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-syntax-check">
+                                    <i class="bi bi-check-circle"></i> 语法检查
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 编辑器区域 -->
+                        <div class="row">
+                            {% if execution_type == 'ansible' %}
+                            <!-- Ansible模式 -->
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-header">模块库</div>
+                                    <div class="card-body p-2" style="height: 300px; overflow-y: auto;">
+                                        <div class="list-group list-group-flush">
+                                            <a href="#" class="list-group-item list-group-item-action ansible-module" data-module="apt">apt - 包管理</a>
+                                            <a href="#" class="list-group-item list-group-item-action ansible-module" data-module="copy">copy - 文件复制</a>
+                                            <a href="#" class="list-group-item list-group-item-action ansible-module" data-module="file">file - 文件操作</a>
+                                            <a href="#" class="list-group-item list-group-item-action ansible-module" data-module="service">service - 服务管理</a>
+                                            <a href="#" class="list-group-item list-group-item-action ansible-module" data-module="template">template - 模板</a>
+                                            <a href="#" class="list-group-item list-group-item-action ansible-module" data-module="user">user - 用户管理</a>
+                                            <a href="#" class="list-group-item list-group-item-action ansible-module" data-module="group">group - 组管理</a>
+                                            <a href="#" class="list-group-item list-group-item-action ansible-module" data-module="yum">yum - 包管理</a>
+                                            <a href="#" class="list-group-item list-group-item-action ansible-module" data-module="shell">shell - 执行命令</a>
+                                            <a href="#" class="list-group-item list-group-item-action ansible-module" data-module="command">command - 执行命令</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <textarea class="form-control" id="command-content" name="command_content" rows="15" placeholder="输入Ansible Playbook内容...">---
+- hosts: all
+  tasks:
+    - name: 安装Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+      become: yes
+      
+    - name: 启动Nginx服务
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+      become: yes</textarea>
+                            </div>
+                            {% else %}
+                            <!-- Shell模式 -->
+                            <div class="col-md-12">
+                                <textarea class="form-control" id="command-content" name="command_content" rows="10" placeholder="输入Shell命令...">#!/bin/bash
+# 示例Shell脚本
+echo "当前系统信息:"
+uname -a
+echo "\n磁盘使用情况:"
+df -h
+echo "\n内存使用情况:"
+free -m</textarea>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 执行参数 -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5>执行参数</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="concurrency" class="form-label">并发数</label>
+                                    <input type="number" class="form-control" id="concurrency" name="concurrency" value="5" min="1" max="50">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="timeout" class="form-label">超时(秒)</label>
+                                    <input type="number" class="form-control" id="timeout" name="timeout" value="300" min="1" max="3600">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="failure-policy" class="form-label">失败策略</label>
+                                    <select class="form-select" id="failure-policy" name="failure_policy">
+                                        <option value="continue">继续执行</option>
+                                        <option value="abort">中止执行</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 提交按钮 -->
+                <div class="row">
+                    <div class="col-md-12 text-end">
+                        <button type="submit" class="btn btn-primary" id="btn-execute">
+                            <i class="bi bi-play-fill"></i> 执行
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 模板选择模态框 -->
+<div class="modal fade" id="templateModal" tabindex="-1" aria-labelledby="templateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="templateModalLabel">选择模板</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>名称</th>
+                                <th>类型</th>
+                                <th>描述</th>
+                                <th>创建人</th>
+                                <th>更新时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="template-list">
+                            <!-- 模板列表将通过AJAX加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 保存模板模态框 -->
+<div class="modal fade" id="saveTemplateModal" tabindex="-1" aria-labelledby="saveTemplateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="saveTemplateModalLabel">保存为模板</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="save-template-form">
+                    <div class="mb-3">
+                        <label for="template-name" class="form-label">模板名称</label>
+                        <input type="text" class="form-control" id="template-name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="template-description" class="form-label">描述</label>
+                        <textarea class="form-control" id="template-description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="template-public" name="is_public">
+                        <label class="form-check-label" for="template-public">公开模板（所有人可见）</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btn-save-template-confirm">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // 主机选择逻辑
+        function updateSelectedHosts() {
+            let selectedHosts = [];
+            
+            // 获取通过标签选择的主机
+            $('.tag-checkbox:checked').each(function() {
+                // 这里应该通过AJAX获取标签下的主机，为简化示例，使用假数据
+                let tagId = $(this).val();
+                let tagName = $(this).next('label').text().trim();
+                selectedHosts.push({
+                    id: 'tag-' + tagId,
+                    name: tagName
+                });
+            });
+            
+            // 获取直接选择的主机
+            $('.host-checkbox:checked').each(function() {
+                let hostId = $(this).val();
+                let hostName = $(this).next('label').text().trim();
+                selectedHosts.push({
+                    id: 'host-' + hostId,
+                    name: hostName
+                });
+            });
+            
+            // 更新已选主机列表
+            let $selectedHostsList = $('#selected-hosts-list');
+            $('#selected-hosts-count').text(selectedHosts.length);
+            
+            if (selectedHosts.length === 0) {
+                $selectedHostsList.html('<span class="text-muted">未选择任何主机</span>');
+                return;
+            }
+            
+            let html = '';
+            selectedHosts.forEach(function(host) {
+                html += `<span class="badge bg-primary me-2 mb-2">${host.name}</span>`;
+            });
+            
+            $selectedHostsList.html(html);
+        }
+        
+        $('.tag-checkbox, .host-checkbox').on('change', updateSelectedHosts);
+        
+        // 模板导入按钮
+        $('#btn-import-template').on('click', function() {
+            // 通过AJAX获取模板列表
+            // 这里使用假数据示例
+            let templates = [
+                { id: 1, name: '安装Nginx', type: 'ansible', description: '安装并配置Nginx服务器', created_by: '管理员', updated_at: '2023-06-10 14:30' },
+                { id: 2, name: '系统信息收集', type: 'shell', description: '收集系统基本信息', created_by: '运维人员', updated_at: '2023-06-09 10:15' },
+                { id: 3, name: 'MySQL安装', type: 'ansible', description: '安装MySQL数据库', created_by: '管理员', updated_at: '2023-06-08 16:45' }
+            ];
+            
+            let html = '';
+            templates.forEach(function(template) {
+                html += `
+                <tr>
+                    <td>${template.name}</td>
+                    <td>${template.type}</td>
+                    <td>${template.description}</td>
+                    <td>${template.created_by}</td>
+                    <td>${template.updated_at}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary btn-use-template" data-id="${template.id}">使用</button>
+                    </td>
+                </tr>`;
+            });
+            
+            $('#template-list').html(html);
+            $('#templateModal').modal('show');
+        });
+        
+        // 使用模板按钮
+        $(document).on('click', '.btn-use-template', function() {
+            let templateId = $(this).data('id');
+            
+            // 通过AJAX获取模板内容
+            // 这里使用假数据示例
+            let templateContent = '';
+            if (templateId === 1) {
+                templateContent = `---
+- hosts: all
+  tasks:
+    - name: 安装Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+      become: yes
+      
+    - name: 启动Nginx服务
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+      become: yes`;
+            } else if (templateId === 2) {
+                templateContent = `#!/bin/bash
+# 系统信息收集脚本
+echo "系统版本信息:"
+cat /etc/os-release
+
+echo "\nCPU信息:"
+cat /proc/cpuinfo | grep "model name" | head -1
+
+echo "\n内存信息:"
+free -h
+
+echo "\n磁盘信息:"
+df -h`;
+            } else if (templateId === 3) {
+                templateContent = `---
+- hosts: all
+  vars:
+    mysql_root_password: secure_password
+  tasks:
+    - name: 安装MySQL
+      apt:
+        name: mysql-server
+        state: present
+        update_cache: yes
+      become: yes
+      
+    - name: 启动MySQL服务
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+      become: yes`;
+            }
+            
+            $('#command-content').val(templateContent);
+            $('#templateModal').modal('hide');
+        });
+        
+        // 保存模板按钮
+        $('#btn-save-template').on('click', function() {
+            $('#saveTemplateModal').modal('show');
+        });
+        
+        // 确认保存模板
+        $('#btn-save-template-confirm').on('click', function() {
+            let templateData = {
+                name: $('#template-name').val(),
+                description: $('#template-description').val(),
+                is_public: $('#template-public').is(':checked'),
+                template_type: '{{ execution_type }}',
+                content: $('#command-content').val()
+            };
+            
+            // 通过AJAX保存模板
+            console.log('保存模板:', templateData);
+            
+            // 模拟保存成功
+            alert('模板保存成功！');
+            $('#saveTemplateModal').modal('hide');
+        });
+        
+        // 添加任务按钮
+        $('#btn-add-task').on('click', function() {
+            if ('{{ execution_type }}' === 'ansible') {
+                let currentContent = $('#command-content').val();
+                let newTask = `
+    - name: 新任务
+      shell: echo "Hello World"
+      become: yes`;
+                
+                // 在最后一个任务后添加新任务
+                let lastTaskIndex = currentContent.lastIndexOf('- name:');
+                if (lastTaskIndex !== -1) {
+                    // 找到最后一个任务的结束位置
+                    let insertPosition = currentContent.indexOf('\n', lastTaskIndex);
+                    while (true) {
+                        let nextLine = currentContent.indexOf('\n', insertPosition + 1);
+                        if (nextLine === -1 || currentContent.substring(insertPosition + 1, nextLine).trim().startsWith('- ')) {
+                            break;
+                        }
+                        insertPosition = nextLine;
+                    }
+                    
+                    // 插入新任务
+                    let newContent = currentContent.substring(0, insertPosition) + newTask + currentContent.substring(insertPosition);
+                    $('#command-content').val(newContent);
+                } else {
+                    // 如果没有找到任务，则添加到文件末尾
+                    $('#command-content').val(currentContent + newTask);
+                }
+            } else {
+                // Shell模式下，添加一个注释和命令
+                let currentContent = $('#command-content').val();
+                let newCommand = `\n\n# 新命令\necho "执行新命令"`;
+                $('#command-content').val(currentContent + newCommand);
+            }
+        });
+        
+        // 添加变量按钮
+        $('#btn-add-var').on('click', function() {
+            if ('{{ execution_type }}' === 'ansible') {
+                let currentContent = $('#command-content').val();
+                
+                // 检查是否已有vars部分
+                if (currentContent.includes('vars:')) {
+                    // 找到vars部分并添加新变量
+                    let varsIndex = currentContent.indexOf('vars:');
+                    let insertPosition = currentContent.indexOf('\n', varsIndex);
+                    let newVar = '\n    new_variable: new_value';
+                    let newContent = currentContent.substring(0, insertPosition) + newVar + currentContent.substring(insertPosition);
+                    $('#command-content').val(newContent);
+                } else {
+                    // 如果没有vars部分，则添加一个
+                    let hostsIndex = currentContent.indexOf('hosts:');
+                    let insertPosition = currentContent.indexOf('\n', hostsIndex);
+                    let newVars = '\n  vars:\n    new_variable: new_value';
+                    let newContent = currentContent.substring(0, insertPosition) + newVars + currentContent.substring(insertPosition);
+                    $('#command-content').val(newContent);
+                }
+            } else {
+                // Shell模式下，添加一个变量定义
+                let currentContent = $('#command-content').val();
+                let newVar = `\n\n# 新变量\nNEW_VARIABLE="new_value"\necho "变量值: $NEW_VARIABLE"`;
+                $('#command-content').val(currentContent + newVar);
+            }
+        });
+        
+        // 语法检查按钮
+        $('#btn-syntax-check').on('click', function() {
+            let content = $('#command-content').val();
+            
+            // 通过AJAX发送语法检查请求
+            // 这里使用模拟响应
+            setTimeout(function() {
+                alert('语法检查通过！');
+            }, 500);
+        });
+        
+        // 表单提交前验证
+        $('#execution-form').on('submit', function(e) {
+            e.preventDefault();
+            
+            // 检查是否选择了主机
+            if ($('#selected-hosts-count').text() === '0') {
+                alert('请至少选择一个目标主机！');
+                return false;
+            }
+            
+            // 检查命令内容是否为空
+            if ($('#command-content').val().trim() === '') {
+                alert('请输入命令内容！');
+                return false;
+            }
+            
+            // 模拟表单提交
+            alert('命令已提交执行！');
+            return false;
+        });
+        
+        // Ansible模块点击事件
+        $('.ansible-module').on('click', function(e) {
+            e.preventDefault();
+            let module = $(this).data('module');
+            let moduleTemplate = '';
+            
+            // 根据不同模块生成不同的模板
+            switch (module) {
+                case 'apt':
+                    moduleTemplate = `    - name: 安装软件包
+      apt:
+        name: package_name
+        state: present
+        update_cache: yes
+      become: yes`;
+                    break;
+                case 'copy':
+                    moduleTemplate = `    - name: 复制文件
+      copy:
+        src: /local/path/to/file
+        dest: /remote/path/to/file
+        owner: root
+        group: root
+        mode: '0644'
+      become: yes`;
+                    break;
+                case 'service':
+                    moduleTemplate = `    - name: 管理服务
+      service:
+        name: service_name
+        state: started
+        enabled: yes
+      become: yes`;
+                    break;
+                default:
+                    moduleTemplate = `    - name: 使用${module}模块
+      ${module}:
+        # 在此添加模块参数
+      become: yes`;
+            }
+            
+            // 将模块模板添加到当前内容中
+            let currentContent = $('#command-content').val();
+            let tasksIndex = currentContent.indexOf('tasks:');
+            
+            if (tasksIndex !== -1) {
+                // 找到tasks部分的结束位置
+                let insertPosition = currentContent.indexOf('\n', tasksIndex);
+                let newContent = currentContent.substring(0, insertPosition) + '\n' + moduleTemplate + currentContent.substring(insertPosition);
+                $('#command-content').val(newContent);
+            } else {
+                // 如果没有找到tasks部分，则添加到文件末尾
+                $('#command-content').val(currentContent + '\n' + moduleTemplate);
+            }
+        });
+    });
+</script>
+{% endblock %}

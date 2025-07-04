@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}命令安全检查工具{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">命令安全检查工具</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">此工具可以帮助您检查命令是否包含潜在的危险操作，避免意外执行高风险命令。</p>
+                    
+                    <form id="command-check-form">
+                        <div class="mb-4">
+                            <label for="command-type" class="form-label">命令类型</label>
+                            <select class="form-select" id="command-type" name="command_type">
+                                <option value="shell">Shell 命令</option>
+                                <option value="ansible">Ansible 命令</option>
+                                <option value="sql">SQL 语句</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="command-content" class="form-label">命令内容</label>
+                            <textarea class="form-control" id="command-content" name="command" rows="6" placeholder="输入要检查的命令..."></textarea>
+                            <div class="form-text">输入单行或多行命令，系统将检查每一行是否匹配危险命令规则。</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-shield-check"></i> 检查命令安全性
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- 检查结果区域 -->
+                    <div id="check-result" class="mt-4 d-none">
+                        <h5>检查结果</h5>
+                        <div id="result-summary" class="alert mb-3"></div>
+                        
+                        <div id="result-details" class="d-none">
+                            <h6>详细分析</h6>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th width="5%">#</th>
+                                            <th width="40%">命令行</th>
+                                            <th width="15%">状态</th>
+                                            <th width="40%">匹配规则</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="result-table-body">
+                                        <!-- 结果将通过JavaScript动态填充 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 安全提示卡片 -->
+            <div class="card mt-4 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">命令安全最佳实践</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-check-circle-fill text-success"></i> 推荐做法</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-check2"></i> 使用相对路径而非绝对路径</li>
+                                <li><i class="bi bi-check2"></i> 在删除前先确认目标文件</li>
+                                <li><i class="bi bi-check2"></i> 使用 <code>--dry-run</code> 选项预览操作</li>
+                                <li><i class="bi bi-check2"></i> 为危险命令添加确认步骤</li>
+                                <li><i class="bi bi-check2"></i> 使用版本控制保护代码和配置</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-x-circle-fill text-danger"></i> 避免做法</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-x"></i> 使用 <code>rm -rf</code> 删除根目录</li>
+                                <li><i class="bi bi-x"></i> 执行未经验证的网络脚本</li>
+                                <li><i class="bi bi-x"></i> 使用 <code>chmod 777</code> 设置过宽权限</li>
+                                <li><i class="bi bi-x"></i> 在生产环境直接执行 <code>DROP</code> 语句</li>
+                                <li><i class="bi bi-x"></i> 使用 <code>sudo</code> 执行不熟悉的命令</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 常见危险命令示例 -->
+            <div class="card mt-4 shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">常见危险命令示例</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="dangerousCommandsAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingShell">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseShell" aria-expanded="true" aria-controls="collapseShell">
+                                    Shell 命令
+                                </button>
+                            </h2>
+                            <div id="collapseShell" class="accordion-collapse collapse show" aria-labelledby="headingShell" data-bs-parent="#dangerousCommandsAccordion">
+                                <div class="accordion-body">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>命令</th>
+                                                <th>风险</th>
+                                                <th>安全替代方案</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>rm -rf /</code></td>
+                                                <td>删除整个文件系统</td>
+                                                <td>指定具体目录，添加确认</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>chmod -R 777 /</code></td>
+                                                <td>为所有文件设置过宽权限</td>
+                                                <td>限制在特定目录，使用更严格权限</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>:(){ :|:& };:</code></td>
+                                                <td>fork炸弹，耗尽系统资源</td>
+                                                <td>避免使用递归函数</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>dd if=/dev/random of=/dev/sda</code></td>
+                                                <td>覆盖磁盘数据</td>
+                                                <td>使用专业数据擦除工具</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingSQL">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSQL" aria-expanded="false" aria-controls="collapseSQL">
+                                    SQL 命令
+                                </button>
+                            </h2>
+                            <div id="collapseSQL" class="accordion-collapse collapse" aria-labelledby="headingSQL" data-bs-parent="#dangerousCommandsAccordion">
+                                <div class="accordion-body">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>命令</th>
+                                                <th>风险</th>
+                                                <th>安全替代方案</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>DROP DATABASE</code></td>
+                                                <td>删除整个数据库</td>
+                                                <td>先备份，使用事务，添加确认</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>DELETE FROM table</code></td>
+                                                <td>删除表中所有数据</td>
+                                                <td>添加 WHERE 条件，使用 LIMIT</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>TRUNCATE TABLE</code></td>
+                                                <td>清空表数据且不可回滚</td>
+                                                <td>使用 DELETE 配合事务</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>UPDATE table SET col=value</code></td>
+                                                <td>更新表中所有行</td>
+                                                <td>添加 WHERE 条件，使用事务</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingAnsible">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnsible" aria-expanded="false" aria-controls="collapseAnsible">
+                                    Ansible 命令
+                                </button>
+                            </h2>
+                            <div id="collapseAnsible" class="accordion-collapse collapse" aria-labelledby="headingAnsible" data-bs-parent="#dangerousCommandsAccordion">
+                                <div class="accordion-body">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>命令</th>
+                                                <th>风险</th>
+                                                <th>安全替代方案</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>ansible all -m shell -a "rm -rf /"</code></td>
+                                                <td>在所有主机上删除根目录</td>
+                                                <td>限制主机范围，使用 file 模块</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>ansible all -m command -a "reboot"</code></td>
+                                                <td>重启所有主机</td>
+                                                <td>使用 reboot 模块，设置延迟</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>ansible all -m shell -a "dd if=/dev/zero of=/dev/sda"</code></td>
+                                                <td>覆盖所有主机的磁盘</td>
+                                                <td>避免直接操作磁盘设备</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>ansible all -m user -a "name=root state=absent"</code></td>
+                                                <td>删除所有主机的root用户</td>
+                                                <td>避免删除系统关键用户</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // 命令检查表单提交
+        $('#command-check-form').on('submit', function(e) {
+            e.preventDefault();
+            
+            let commandType = $('#command-type').val();
+            let commandContent = $('#command-content').val();
+            
+            if (!commandContent.trim()) {
+                alert('请输入要检查的命令！');
+                return;
+            }
+            
+            // 显示加载状态
+            $('#check-result').removeClass('d-none');
+            $('#result-summary').removeClass('alert-danger alert-warning alert-success')
+                               .addClass('alert-info')
+                               .html('<div class="d-flex align-items-center"><div class="spinner-border spinner-border-sm me-2" role="status"></div><span>正在检查命令安全性...</span></div>');
+            
+            // 通过AJAX发送命令检查请求
+            // 这里使用模拟响应
+            setTimeout(function() {
+                // 模拟检查结果
+                let commandLines = commandContent.split('\n').filter(line => line.trim());
+                let results = [];
+                let hasDangerous = false;
+                let hasForbidden = false;
+                
+                for (let i = 0; i < commandLines.length; i++) {
+                    let line = commandLines[i];
+                    let result = {
+                        line: line,
+                        is_dangerous: false,
+                        status: 'safe',
+                        matched_rule: null
+                    };
+                    
+                    // 模拟危险命令检查逻辑
+                    if (line.includes('rm -rf') || line.includes('DROP DATABASE') || 
+                        line.includes('chmod 777') || line.includes('dd if=/dev/')) {
+                        result.is_dangerous = true;
+                        hasDangerous = true;
+                        
+                        if (line.includes('rm -rf /') || line.includes('DROP DATABASE') || 
+                            line.includes('dd if=/dev/random of=/dev/sda')) {
+                            result.status = 'forbidden';
+                            hasForbidden = true;
+                            result.matched_rule = {
+                                pattern: line.includes('rm -rf /') ? 'rm -rf /' : 
+                                         (line.includes('DROP DATABASE') ? 'DROP DATABASE' : 'dd if=/dev/random of=/dev/sda'),
+                                match_type: 'contains',
+                                action: 'forbid',
+                                description: '高危命令，禁止执行'
+                            };
+                        } else {
+                            result.status = 'warning';
+                            result.matched_rule = {
+                                pattern: line.includes('rm -rf') ? 'rm -rf' : 
+                                         (line.includes('chmod 777') ? 'chmod 777' : 'dd if=/dev/'),
+                                match_type: 'contains',
+                                action: 'warn',
+                                description: '潜在危险命令，执行前需确认'
+                            };
+                        }
+                    }
+                    
+                    results.push(result);
+                }
+                
+                // 更新结果摘要
+                let $resultSummary = $('#result-summary');
+                if (hasForbidden) {
+                    $resultSummary.removeClass('alert-info alert-warning alert-success')
+                                 .addClass('alert-danger')
+                                 .html('<i class="bi bi-x-circle-fill me-2"></i><strong>检测到禁止执行的危险命令！</strong><br>命令中包含系统禁止执行的高风险操作，请修改后再试。');
+                } else if (hasDangerous) {
+                    $resultSummary.removeClass('alert-info alert-danger alert-success')
+                                 .addClass('alert-warning')
+                                 .html('<i class="bi bi-exclamation-triangle-fill me-2"></i><strong>检测到潜在危险命令！</strong><br>命令中包含潜在风险操作，执行前请确认操作安全。');
+                } else {
+                    $resultSummary.removeClass('alert-info alert-danger alert-warning')
+                                 .addClass('alert-success')
+                                 .html('<i class="bi bi-check-circle-fill me-2"></i><strong>命令检查通过！</strong><br>未检测到危险命令，可以安全执行。');
+                }
+                
+                // 更新详细结果表格
+                let $resultTableBody = $('#result-table-body');
+                $resultTableBody.empty();
+                
+                for (let i = 0; i < results.length; i++) {
+                    let result = results[i];
+                    let statusBadge = '';
+                    let matchedRule = '';
+                    
+                    if (result.status === 'forbidden') {
+                        statusBadge = '<span class="badge bg-danger">禁止执行</span>';
+                    } else if (result.status === 'warning') {
+                        statusBadge = '<span class="badge bg-warning text-dark">需要警告</span>';
+                    } else {
+                        statusBadge = '<span class="badge bg-success">安全</span>';
+                    }
+                    
+                    if (result.matched_rule) {
+                        matchedRule = `
+                            <strong>匹配模式:</strong> <code>${result.matched_rule.pattern}</code><br>
+                            <strong>匹配类型:</strong> ${getMatchTypeName(result.matched_rule.match_type)}<br>
+                            <strong>处理动作:</strong> ${getActionName(result.matched_rule.action)}<br>
+                            <strong>描述:</strong> ${result.matched_rule.description}
+                        `;
+                    } else {
+                        matchedRule = '<em>未匹配任何规则</em>';
+                    }
+                    
+                    let row = `
+                        <tr class="${result.status === 'forbidden' ? 'table-danger' : (result.status === 'warning' ? 'table-warning' : '')}">
+                            <td>${i + 1}</td>
+                            <td><code>${escapeHtml(result.line)}</code></td>
+                            <td>${statusBadge}</td>
+                            <td>${matchedRule}</td>
+                        </tr>
+                    `;
+                    
+                    $resultTableBody.append(row);
+                }
+                
+                // 显示详细结果
+                $('#result-details').removeClass('d-none');
+                
+            }, 1000); // 模拟1秒延迟
+        });
+        
+        // 辅助函数：获取匹配类型名称
+        function getMatchTypeName(matchType) {
+            switch (matchType) {
+                case 'exact': return '精确匹配';
+                case 'contains': return '包含';
+                case 'startswith': return '开头匹配';
+                case 'endswith': return '结尾匹配';
+                case 'regex': return '正则表达式';
+                default: return matchType;
+            }
+        }
+        
+        // 辅助函数：获取处理动作名称
+        function getActionName(action) {
+            switch (action) {
+                case 'forbid': return '禁止执行';
+                case 'warn': return '警告提示';
+                case 'log': return '仅记录';
+                default: return action;
+            }
+        }
+        
+        // 辅助函数：HTML转义
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    });
+</script>
+{% endblock %}
