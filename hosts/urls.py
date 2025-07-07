@@ -12,6 +12,9 @@ from .page_views import (
 )
 from .api_views import get_ssh_credentials, get_credential_detail, delete_credential
 
+# 设置应用名称
+app_name = 'hosts'
+
 # 创建路由器并注册视图集
 router = DefaultRouter()
 router.register(r'api/hosts', HostViewSet)

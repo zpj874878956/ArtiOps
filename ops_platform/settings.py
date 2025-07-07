@@ -87,10 +87,14 @@ WSGI_APPLICATION = 'ops_platform.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# 在文件顶部添加
+import pymysql
+pymysql.install_as_MySQLdb()
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'ops_platform',
+        'NAME': 'aritiops',
         'USER': 'root',
         'PASSWORD': 'root',
         'HOST': 'localhost',
@@ -137,7 +141,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+# 删除这行重复的配置
+# STATIC_URL = 'static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -175,6 +180,7 @@ SWAGGER_SETTINGS = {
 }
 
 # 静态文件配置
+# 保留这个正确的静态文件配置
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',

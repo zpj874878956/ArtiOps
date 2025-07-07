@@ -110,3 +110,19 @@ ops_platform/
 ## 许可证
 
 [MIT](LICENSE)
+
+## 访问地址
+### 前端地址
+- 主页/仪表盘 : http://localhost:8000/
+- 主机管理 : http://localhost:8000/hosts/
+- 命令执行 : http://localhost:8000/commands/
+### 后端地址
+- API接口根路径 : http://localhost:8000/api/v1/
+- 管理后台 : http://localhost:8000/admin/
+- API文档(Swagger) : http://localhost:8000/swagger/
+- API文档(ReDoc) : http://localhost:8000/redoc/
+### 具体API接口
+- 用户管理: http://localhost:8000/api/v1/users/
+- 主机管理: http://localhost:8000/api/v1/hosts/
+- 命令执行: http://localhost:8000/api/v1/commands/
+- 导航系统: http://localhost:8000/api/v1/navigation/

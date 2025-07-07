@@ -16,6 +16,9 @@ from .page_views import (
     cancel_execution
 )
 
+# 设置应用名称
+app_name = 'commands'
+
 # 创建路由器并注册视图集
 router = DefaultRouter()
 router.register(r'api/templates', CommandTemplateViewSet, basename='command-template')

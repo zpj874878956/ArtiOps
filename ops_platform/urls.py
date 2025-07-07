@@ -43,8 +43,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     # 页面路由
-    path('hosts/', include('hosts.urls')),  # 主机管理模块
-    path('commands/', include('commands.urls')),  # 命令执行模块
+    path('hosts/', include('hosts.urls', namespace='hosts')),  # 主机管理模块
+    path('commands/', include('commands.urls', namespace='commands')),  # 命令执行模块
     
     # API接口
     path('api/v1/', include([
@@ -63,3 +63,5 @@ urlpatterns = [
 # 开发环境下提供媒体文件访问
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # 修复静态文件URL配置
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])

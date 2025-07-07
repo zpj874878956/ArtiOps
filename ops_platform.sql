@@ -1,12 +1,24 @@
 -- 首先创建Django认证系统的基础表
 -- 创建auth_permission表
+-- 需要在auth_permission表之前添加
+CREATE TABLE `django_content_type` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `app_label` varchar(100) NOT NULL,
+  `model` varchar(100) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `django_content_type_app_label_model` (`app_label`,`model`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- 然后修改auth_permission表，添加外键约束
 CREATE TABLE `auth_permission` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `content_type_id` int NOT NULL,
   `codename` varchar(100) NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `auth_permission_content_type_id_codename` (`content_type_id`,`codename`)
+  UNIQUE KEY `auth_permission_content_type_id_codename` (`content_type_id`,`codename`),
+  KEY `auth_permission_content_type_id` (`content_type_id`),
+  CONSTRAINT `auth_permission_content_type_id_foreign` FOREIGN KEY (`content_type_id`) REFERENCES `django_content_type` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- 创建auth_group表
@@ -94,7 +106,7 @@ CREATE TABLE `users_userloginlog` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
--------------------导航栏
+-- =================== 导航栏 ===================
 CREATE TABLE `navigation_systemcategory` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL COMMENT '分类名称',
@@ -180,7 +192,7 @@ CREATE TABLE `navigation_accesslog` (
   CONSTRAINT `navigation_accesslog_system_id_fk` FOREIGN KEY (`system_id`) REFERENCES `navigation_externalsystem` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='访问日志';
 
--------------------主机管理
+-- =================== 主机管理 ===================
 CREATE TABLE `hosts_hostgroup` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL COMMENT '组名称',
@@ -277,7 +289,7 @@ CREATE TABLE `hosts_sshcredential_hosts` (
   CONSTRAINT `hosts_sshcredential_hosts_host_id_fk` FOREIGN KEY (`host_id`) REFERENCES `hosts_host` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='SSH凭证与主机关联';
 
--------------------命令管理
+-- =================== 命令管理 ===================
 CREATE TABLE `commands_commandtemplate` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL COMMENT '模板名称',
@@ -340,3 +352,100 @@ CREATE TABLE `commands_dangerouscommand` (
   KEY `commands_dangerouscommand_created_by_id` (`created_by_id`),
   CONSTRAINT `commands_dangerouscommand_created_by_id_fk` FOREIGN KEY (`created_by_id`) REFERENCES `users_user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='危险命令';
+
+
+-- 在文件末尾添加以下Django系统表
+
+-- Django会话表
+CREATE TABLE `django_session` (
+  `session_key` varchar(40) NOT NULL,
+  `session_data` longtext NOT NULL,
+  `expire_date` datetime(6) NOT NULL,
+  PRIMARY KEY (`session_key`),
+  KEY `django_session_expire_date` (`expire_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Django管理员日志表
+CREATE TABLE `django_admin_log` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `action_time` datetime(6) NOT NULL,
+  `object_id` longtext,
+  `object_repr` varchar(200) NOT NULL,
+  `action_flag` smallint unsigned NOT NULL,
+  `change_message` longtext NOT NULL,
+  `content_type_id` int DEFAULT NULL,
+  `user_id` bigint NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `django_admin_log_content_type_id` (`content_type_id`),
+  KEY `django_admin_log_user_id` (`user_id`),
+  KEY `django_admin_log_action_time` (`action_time`),
+  CONSTRAINT `django_admin_log_content_type_id_foreign` FOREIGN KEY (`content_type_id`) REFERENCES `django_content_type` (`id`),
+  CONSTRAINT `django_admin_log_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users_user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Django迁移记录表
+CREATE TABLE `django_migrations` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `app` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `applied` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- OAuth2相关表（如果使用OAuth2认证）
+CREATE TABLE `oauth2_provider_application` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `client_id` varchar(100) NOT NULL,
+  `user_id` bigint DEFAULT NULL,
+  `client_secret` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `client_type` varchar(32) NOT NULL,
+  `authorization_grant_type` varchar(32) NOT NULL,
+  `skip_authorization` tinyint(1) NOT NULL,
+  `created` datetime(6) NOT NULL,
+  `updated` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `client_id` (`client_id`),
+  KEY `oauth2_provider_application_user_id` (`user_id`),
+  CONSTRAINT `oauth2_provider_application_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users_user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `oauth2_provider_accesstoken` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `token` varchar(255) NOT NULL,
+  `expires` datetime(6) NOT NULL,
+  `scope` longtext NOT NULL,
+  `application_id` bigint DEFAULT NULL,
+  `user_id` bigint DEFAULT NULL,
+  `created` datetime(6) NOT NULL,
+  `updated` datetime(6) NOT NULL,
+  `source_refresh_token_id` bigint DEFAULT NULL,
+  `id_token_id` bigint DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `token` (`token`),
+  KEY `oauth2_provider_accesstoken_application_id` (`application_id`),
+  KEY `oauth2_provider_accesstoken_user_id` (`user_id`),
+  KEY `oauth2_provider_accesstoken_source_refresh_token_id` (`source_refresh_token_id`),
+  KEY `oauth2_provider_accesstoken_id_token_id` (`id_token_id`),
+  CONSTRAINT `oauth2_provider_accesstoken_application_id_foreign` FOREIGN KEY (`application_id`) REFERENCES `oauth2_provider_application` (`id`),
+  CONSTRAINT `oauth2_provider_accesstoken_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users_user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `oauth2_provider_refreshtoken` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `token` varchar(255) NOT NULL,
+  `access_token_id` bigint NOT NULL,
+  `application_id` bigint NOT NULL,
+  `user_id` bigint NOT NULL,
+  `created` datetime(6) NOT NULL,
+  `updated` datetime(6) NOT NULL,
+  `revoked` datetime(6) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `access_token_id` (`access_token_id`),
+  UNIQUE KEY `oauth2_provider_refreshtoken_token` (`token`),
+  KEY `oauth2_provider_refreshtoken_application_id` (`application_id`),
+  KEY `oauth2_provider_refreshtoken_user_id` (`user_id`),
+  CONSTRAINT `oauth2_provider_refreshtoken_access_token_id_foreign` FOREIGN KEY (`access_token_id`) REFERENCES `oauth2_provider_accesstoken` (`id`),
+  CONSTRAINT `oauth2_provider_refreshtoken_application_id_foreign` FOREIGN KEY (`application_id`) REFERENCES `oauth2_provider_application` (`id`),
+  CONSTRAINT `oauth2_provider_refreshtoken_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users_user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
