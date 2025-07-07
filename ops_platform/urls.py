@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from .views import index  # 导入首页视图
 
 # Swagger文档配置
 from rest_framework import permissions
@@ -38,13 +39,19 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    path('', index, name='index'),  # 首页/仪表盘
     path('admin/', admin.site.urls),
+    
+    # 页面路由
+    path('hosts/', include('hosts.urls')),  # 主机管理模块
+    path('commands/', include('commands.urls')),  # 命令执行模块
     
     # API接口
     path('api/v1/', include([
         path('', include('users.urls')),  # 用户模块
         path('navigation/', include('navigation.urls')),  # 导航系统模块
         path('commands/', include('commands.urls')),  # 批量命令执行模块
+        path('hosts/', include('hosts.urls')),  # 主机管理模块
         # 其他模块的URL配置将在后续添加
     ])),
     

@@ -10,6 +10,7 @@ from .page_views import (
     host_detail,
     test_ssh_connection
 )
+from .api_views import get_ssh_credentials, get_credential_detail, delete_credential
 
 # 创建路由器并注册视图集
 router = DefaultRouter()
@@ -32,4 +33,7 @@ urlpatterns = [
     
     # AJAX接口
     path('test-ssh/', test_ssh_connection, name='test_ssh_connection'),
+    path('api/credentials/list/', get_ssh_credentials, name='get_ssh_credentials'),
+    path('api/credentials/<int:credential_id>/', get_credential_detail, name='get_credential_detail'),
+    path('api/credentials/<int:credential_id>/delete/', delete_credential, name='delete_credential'),
 ]

@@ -179,3 +179,164 @@ CREATE TABLE `navigation_accesslog` (
   CONSTRAINT `navigation_accesslog_user_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users_user` (`id`) ON DELETE CASCADE,
   CONSTRAINT `navigation_accesslog_system_id_fk` FOREIGN KEY (`system_id`) REFERENCES `navigation_externalsystem` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='访问日志';
+
+-------------------主机管理
+CREATE TABLE `hosts_hostgroup` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL COMMENT '组名称',
+  `description` longtext NULL COMMENT '描述',
+  `created_at` datetime(6) NOT NULL COMMENT '创建时间',
+  `updated_at` datetime(6) NOT NULL COMMENT '更新时间',
+  `created_by_id` bigint NULL COMMENT '创建人ID',
+  PRIMARY KEY (`id`),
+  KEY `hosts_hostgroup_created_by_id` (`created_by_id`),
+  CONSTRAINT `hosts_hostgroup_created_by_id_fk` FOREIGN KEY (`created_by_id`) REFERENCES `users_user` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='主机组';
+
+CREATE TABLE `hosts_host` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `hostname` varchar(100) NOT NULL COMMENT '主机名',
+  `ip_address` varchar(100) NOT NULL COMMENT 'IP地址',
+  `port` int NOT NULL DEFAULT 22 COMMENT 'SSH端口',
+  `os_type` varchar(50) NULL COMMENT '操作系统类型',
+  `os_version` varchar(50) NULL COMMENT '操作系统版本',
+  `status` varchar(20) NOT NULL DEFAULT 'unknown' COMMENT '状态',
+  `description` longtext NULL COMMENT '描述',
+  `created_at` datetime(6) NOT NULL COMMENT '创建时间',
+  `updated_at` datetime(6) NOT NULL COMMENT '更新时间',
+  `created_by_id` bigint NULL COMMENT '创建人ID',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `hosts_host_hostname_ip_address` (`hostname`, `ip_address`),
+  KEY `hosts_host_created_by_id` (`created_by_id`),
+  CONSTRAINT `hosts_host_created_by_id_fk` FOREIGN KEY (`created_by_id`) REFERENCES `users_user` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='主机';
+
+CREATE TABLE `hosts_host_groups` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `host_id` bigint NOT NULL COMMENT '主机ID',
+  `hostgroup_id` bigint NOT NULL COMMENT '主机组ID',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `hosts_host_groups_host_id_hostgroup_id` (`host_id`, `hostgroup_id`),
+  KEY `hosts_host_groups_host_id` (`host_id`),
+  KEY `hosts_host_groups_hostgroup_id` (`hostgroup_id`),
+  CONSTRAINT `hosts_host_groups_host_id_fk` FOREIGN KEY (`host_id`) REFERENCES `hosts_host` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `hosts_host_groups_hostgroup_id_fk` FOREIGN KEY (`hostgroup_id`) REFERENCES `hosts_hostgroup` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='主机与主机组关联';
+
+CREATE TABLE `hosts_hosttag` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL COMMENT '标签名',
+  `color` varchar(20) NOT NULL DEFAULT '#1890ff' COMMENT '标签颜色',
+  `created_at` datetime(6) NOT NULL COMMENT '创建时间',
+  `created_by_id` bigint NULL COMMENT '创建人ID',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `hosts_hosttag_name` (`name`),
+  KEY `hosts_hosttag_created_by_id` (`created_by_id`),
+  CONSTRAINT `hosts_hosttag_created_by_id_fk` FOREIGN KEY (`created_by_id`) REFERENCES `users_user` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='主机标签';
+
+CREATE TABLE `hosts_hosttag_hosts` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `hosttag_id` bigint NOT NULL COMMENT '标签ID',
+  `host_id` bigint NOT NULL COMMENT '主机ID',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `hosts_hosttag_hosts_hosttag_id_host_id` (`hosttag_id`, `host_id`),
+  KEY `hosts_hosttag_hosts_hosttag_id` (`hosttag_id`),
+  KEY `hosts_hosttag_hosts_host_id` (`host_id`),
+  CONSTRAINT `hosts_hosttag_hosts_hosttag_id_fk` FOREIGN KEY (`hosttag_id`) REFERENCES `hosts_hosttag` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `hosts_hosttag_hosts_host_id_fk` FOREIGN KEY (`host_id`) REFERENCES `hosts_host` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='主机标签与主机关联';
+
+CREATE TABLE `hosts_sshcredential` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL COMMENT '凭证名称',
+  `auth_type` varchar(20) NOT NULL DEFAULT 'password' COMMENT '认证类型',
+  `username` varchar(100) NOT NULL COMMENT '用户名',
+  `password` varchar(255) NULL COMMENT '密码',
+  `private_key` longtext NULL COMMENT '私钥',
+  `passphrase` varchar(255) NULL COMMENT '密钥口令',
+  `is_default` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否默认',
+  `description` longtext NULL COMMENT '描述',
+  `created_at` datetime(6) NOT NULL COMMENT '创建时间',
+  `updated_at` datetime(6) NOT NULL COMMENT '更新时间',
+  `created_by_id` bigint NULL COMMENT '创建人ID',
+  PRIMARY KEY (`id`),
+  KEY `hosts_sshcredential_created_by_id` (`created_by_id`),
+  CONSTRAINT `hosts_sshcredential_created_by_id_fk` FOREIGN KEY (`created_by_id`) REFERENCES `users_user` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='SSH凭证';
+
+CREATE TABLE `hosts_sshcredential_hosts` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `sshcredential_id` bigint NOT NULL COMMENT '凭证ID',
+  `host_id` bigint NOT NULL COMMENT '主机ID',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `hosts_sshcredential_hosts_sshcredential_id_host_id` (`sshcredential_id`, `host_id`),
+  KEY `hosts_sshcredential_hosts_sshcredential_id` (`sshcredential_id`),
+  KEY `hosts_sshcredential_hosts_host_id` (`host_id`),
+  CONSTRAINT `hosts_sshcredential_hosts_sshcredential_id_fk` FOREIGN KEY (`sshcredential_id`) REFERENCES `hosts_sshcredential` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `hosts_sshcredential_hosts_host_id_fk` FOREIGN KEY (`host_id`) REFERENCES `hosts_host` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='SSH凭证与主机关联';
+
+-------------------命令管理
+CREATE TABLE `commands_commandtemplate` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL COMMENT '模板名称',
+  `template_type` varchar(20) NOT NULL COMMENT '模板类型',
+  `content` longtext NOT NULL COMMENT '模板内容',
+  `description` longtext NULL COMMENT '模板描述',
+  `is_public` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否公开',
+  `created_at` datetime(6) NOT NULL COMMENT '创建时间',
+  `updated_at` datetime(6) NOT NULL COMMENT '更新时间',
+  `created_by_id` bigint NOT NULL COMMENT '创建人ID',
+  PRIMARY KEY (`id`),
+  KEY `commands_commandtemplate_created_by_id` (`created_by_id`),
+  CONSTRAINT `commands_commandtemplate_created_by_id_fk` FOREIGN KEY (`created_by_id`) REFERENCES `users_user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='命令模板';
+
+CREATE TABLE `commands_commandexecution` (
+  `id` varchar(36) NOT NULL COMMENT 'UUID',
+  `name` varchar(100) NOT NULL COMMENT '任务名称',
+  `execution_type` varchar(20) NOT NULL COMMENT '执行类型',
+  `command_content` longtext NOT NULL COMMENT '命令内容',
+  `target_hosts` json NOT NULL COMMENT '目标主机',
+  `parameters` json NOT NULL COMMENT '执行参数',
+  `result` json NULL COMMENT '执行结果',
+  `status` varchar(20) NOT NULL DEFAULT 'pending' COMMENT '执行状态',
+  `start_time` datetime(6) NULL COMMENT '开始时间',
+  `end_time` datetime(6) NULL COMMENT '结束时间',
+  `created_at` datetime(6) NOT NULL COMMENT '创建时间',
+  `created_by_id` bigint NOT NULL COMMENT '执行人ID',
+  `template_id` bigint NULL COMMENT '关联模板ID',
+  PRIMARY KEY (`id`),
+  KEY `commands_commandexecution_created_by_id` (`created_by_id`),
+  KEY `commands_commandexecution_template_id` (`template_id`),
+  KEY `commands_commandexecution_created_at` (`created_at`),
+  CONSTRAINT `commands_commandexecution_created_by_id_fk` FOREIGN KEY (`created_by_id`) REFERENCES `users_user` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `commands_commandexecution_template_id_fk` FOREIGN KEY (`template_id`) REFERENCES `commands_commandtemplate` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='命令执行记录';
+
+CREATE TABLE `commands_executionlog` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `host` varchar(100) NULL COMMENT '主机',
+  `log_level` varchar(10) NOT NULL DEFAULT 'info' COMMENT '日志级别',
+  `message` longtext NOT NULL COMMENT '日志内容',
+  `timestamp` datetime(6) NOT NULL COMMENT '记录时间',
+  `execution_id` varchar(36) NOT NULL COMMENT '执行记录ID',
+  PRIMARY KEY (`id`),
+  KEY `commands_executionlog_execution_id` (`execution_id`),
+  KEY `commands_executionlog_timestamp` (`timestamp`),
+  CONSTRAINT `commands_executionlog_execution_id_fk` FOREIGN KEY (`execution_id`) REFERENCES `commands_commandexecution` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='执行日志';
+
+CREATE TABLE `commands_dangerouscommand` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `pattern` varchar(200) NOT NULL COMMENT '命令模式',
+  `command_type` varchar(10) NOT NULL DEFAULT 'regex' COMMENT '匹配类型',
+  `description` longtext NULL COMMENT '危险说明',
+  `action` varchar(20) NOT NULL DEFAULT 'warn' COMMENT '处理动作',
+  `created_at` datetime(6) NOT NULL COMMENT '创建时间',
+  `created_by_id` bigint NOT NULL COMMENT '创建人ID',
+  PRIMARY KEY (`id`),
+  KEY `commands_dangerouscommand_created_by_id` (`created_by_id`),
+  CONSTRAINT `commands_dangerouscommand_created_by_id_fk` FOREIGN KEY (`created_by_id`) REFERENCES `users_user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='危险命令';

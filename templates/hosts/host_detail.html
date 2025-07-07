@@ -481,7 +481,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // 全局变量
-    var hostId = {{ host_id }}; // 从后端传递的主机ID
+    var hostId = "{{ host_id }}"; // 从后端传递的主机ID
     var monitorCharts = {};
     var currentTimeRange = '1h';
     
@@ -1414,7 +1414,7 @@
         select.append('<option value="">请选择命令模板</option>');
         
         $.each(templates, function(index, template) {
-            select.append('<option value="' + template.id + '" data-params=\'" + JSON.stringify(template.params) + "\' data-content=\'"+template.command_content+"\'>" + template.name + '</option>');
+            select.append('<option value="' + template.id + '" data-params="' + JSON.stringify(template.params) + '" data-content="'+template.command_content+'">' + template.name + '</option>');
         });
     }
     

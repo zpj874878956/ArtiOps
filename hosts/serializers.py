@@ -103,7 +103,7 @@ class SSHCredentialSerializer(serializers.ModelSerializer):
     class Meta:
         model = SSHCredential
         fields = ('id', 'name', 'auth_type', 'username', 'password', 'private_key', 'passphrase',
-                  'is_default', 'created_by', 'created_at', 'updated_at', 'hosts', 'host_ids')
+                  'is_default', 'description', 'created_by', 'created_at', 'updated_at', 'hosts', 'host_ids')
         read_only_fields = ('created_at', 'updated_at')
         extra_kwargs = {
             'password': {'write_only': True},
@@ -116,3 +116,46 @@ class SSHCredentialSerializer(serializers.ModelSerializer):
         # 设置创建人为当前用户
         validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)
+
+
+class SSHCredentialCreateSerializer(serializers.ModelSerializer):
+    """SSH凭证创建序列化器
+    用于创建和更新SSH凭证，包含更严格的验证
+    """
+    host_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Host.objects.all(),
+        many=True,
+        required=False,
+        source='hosts'
+    )
+    
+    class Meta:
+        model = SSHCredential
+        fields = ('name', 'auth_type', 'username', 'password', 'private_key', 'passphrase',
+                  'is_default', 'host_ids', 'description')
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'private_key': {'write_only': True},
+            'passphrase': {'write_only': True},
+        }
+    
+    def validate(self, data):
+        """验证数据"""
+        auth_type = data.get('auth_type')
+        password = data.get('password')
+        private_key = data.get('private_key')
+        
+        # 创建时验证认证信息
+        if self.instance is None:  # 创建操作
+            if auth_type == 'password' and not password:
+                raise serializers.ValidationError({'password': '密码认证类型必须提供密码'})
+            elif auth_type == 'key' and not private_key:
+                raise serializers.ValidationError({'private_key': '密钥认证类型必须提供私钥'})
+        # 更新时，如果提供了认证类型但没有提供对应的认证信息，则验证
+        elif 'auth_type' in self.initial_data:
+            if auth_type == 'password' and 'password' in self.initial_data and not password:
+                raise serializers.ValidationError({'password': '密码认证类型必须提供密码'})
+            elif auth_type == 'key' and 'private_key' in self.initial_data and not private_key:
+                raise serializers.ValidationError({'private_key': '密钥认证类型必须提供私钥'})
+        
+        return data

@@ -176,7 +176,10 @@ SWAGGER_SETTINGS = {
 
 # 静态文件配置
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'static'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # 媒体文件配置
 MEDIA_URL = '/media/'

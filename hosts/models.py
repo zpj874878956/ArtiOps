@@ -84,6 +84,7 @@ class SSHCredential(models.Model):
     passphrase = models.CharField(max_length=255, blank=True, null=True, verbose_name='密钥口令')
     hosts = models.ManyToManyField(Host, blank=True, related_name='credentials', verbose_name='关联主机')
     is_default = models.BooleanField(default=False, verbose_name='是否默认')
+    description = models.TextField(blank=True, null=True, verbose_name='描述')
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name='创建人')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')

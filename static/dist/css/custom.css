@@ -1,0 +1,98 @@
+/* 
+ * 运维平台自定义样式
+ * 包含全局样式覆盖和自定义组件样式
+ */
+
+/* 全局样式 */
+.content-header h1 {
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.card-primary.card-outline {
+    border-top: 3px solid #007bff;
+}
+
+.card-success.card-outline {
+    border-top: 3px solid #28a745;
+}
+
+.card-warning.card-outline {
+    border-top: 3px solid #ffc107;
+}
+
+.card-danger.card-outline {
+    border-top: 3px solid #dc3545;
+}
+
+/* 主机管理样式 */
+.host-status-badge {
+    font-size: 85%;
+    font-weight: normal;
+}
+
+.host-status-online {
+    background-color: #28a745;
+}
+
+.host-status-offline {
+    background-color: #dc3545;
+}
+
+.host-status-unknown {
+    background-color: #6c757d;
+}
+
+/* 命令执行样式 */
+.command-result {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.command-success {
+    border-left: 4px solid #28a745;
+}
+
+.command-error {
+    border-left: 4px solid #dc3545;
+}
+
+.command-warning {
+    border-left: 4px solid #ffc107;
+}
+
+/* 危险命令高亮 */
+.dangerous-pattern {
+    background-color: rgba(220, 53, 69, 0.2);
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+
+/* 仪表盘卡片样式 */
+.info-box-number {
+    font-size: 24px;
+}
+
+.dashboard-chart {
+    min-height: 300px;
+}
+
+/* 响应式调整 */
+@media (max-width: 767.98px) {
+    .info-box-number {
+        font-size: 18px;
+    }
+    
+    .dashboard-chart {
+        min-height: 200px;
+    }
+    
+    .command-result {
+        max-height: 200px;
+    }
+}

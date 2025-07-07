@@ -1,0 +1,574 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}运维平台 - 仪表盘{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 信息卡片 -->
+    <div class="row">
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3 id="hostCount">0</h3>
+                    <p>主机数量</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-server"></i>
+                </div>
+                <a href="{% url 'hosts:host_list' %}" class="small-box-footer">
+                    查看详情 <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <h3 id="commandTemplateCount">0</h3>
+                    <p>命令模板</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-terminal"></i>
+                </div>
+                <a href="{% url 'commands:command_templates' %}" class="small-box-footer">
+                    查看详情 <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3 id="executionCount">0</h3>
+                    <p>命令执行次数</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-history"></i>
+                </div>
+                <a href="{% url 'commands:execution_history' %}" class="small-box-footer">
+                    查看详情 <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger">
+                <div class="inner">
+                    <h3 id="dangerousCommandCount">0</h3>
+                    <p>危险命令拦截</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <a href="{% url 'commands:dangerous_commands' %}" class="small-box-footer">
+                    查看详情 <i class="fas fa-arrow-circle-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 图表和最近活动 -->
+    <div class="row">
+        <!-- 命令执行统计图表 -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">命令执行统计</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart">
+                        <canvas id="executionChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 最近活动 -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">最近活动</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="products-list product-list-in-card pl-2 pr-2" id="recentActivities">
+                        <!-- 最近活动将通过JavaScript动态加载 -->
+                    </ul>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="{% url 'commands:execution_history' %}" class="uppercase">查看所有活动</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 主机状态和资源使用 -->
+    <div class="row">
+        <!-- 主机状态 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">主机状态</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart">
+                        <canvas id="hostStatusChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 资源使用情况 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">资源使用情况</h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>主机</th>
+                                    <th>CPU使用率</th>
+                                    <th>内存使用率</th>
+                                    <th>磁盘使用率</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resourceUsageBody">
+                                <!-- 资源使用情况将通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js -->
+<script src="{% static 'plugins/chart.js/Chart.min.js' %}"></script>
+
+<script>
+    $(function() {
+        // 加载统计数据
+        loadStatistics();
+        
+        // 加载命令执行统计图表
+        loadExecutionChart();
+        
+        // 加载主机状态图表
+        loadHostStatusChart();
+        
+        // 加载最近活动
+        loadRecentActivities();
+        
+        // 加载资源使用情况
+        loadResourceUsage();
+    });
+    
+    // 加载统计数据
+    function loadStatistics() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/api/dashboard/statistics/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         updateStatistics(response);
+        //     },
+        //     error: function(error) {
+        //         console.error('加载统计数据失败', error);
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            host_count: 15,
+            command_template_count: 8,
+            execution_count: 126,
+            dangerous_command_count: 5
+        };
+        
+        updateStatistics(mockData);
+    }
+    
+    // 更新统计数据
+    function updateStatistics(data) {
+        $('#hostCount').text(data.host_count);
+        $('#commandTemplateCount').text(data.command_template_count);
+        $('#executionCount').text(data.execution_count);
+        $('#dangerousCommandCount').text(data.dangerous_command_count);
+    }
+    
+    // 加载命令执行统计图表
+    function loadExecutionChart() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/api/dashboard/execution-stats/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderExecutionChart(response);
+        //     },
+        //     error: function(error) {
+        //         console.error('加载命令执行统计失败', error);
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+            success_data: [12, 15, 8, 10, 20, 5, 3],
+            failed_data: [2, 3, 1, 4, 2, 0, 1]
+        };
+        
+        renderExecutionChart(mockData);
+    }
+    
+    // 渲染命令执行统计图表
+    function renderExecutionChart(data) {
+        var ctx = document.getElementById('executionChart').getContext('2d');
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    {
+                        label: '成功',
+                        data: data.success_data,
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        pointBackgroundColor: '#28a745',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#28a745',
+                        borderWidth: 2,
+                        fill: true
+                    },
+                    {
+                        label: '失败',
+                        data: data.failed_data,
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        pointBackgroundColor: '#dc3545',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#dc3545',
+                        borderWidth: 2,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                }
+            }
+        });
+    }
+    
+    // 加载主机状态图表
+    function loadHostStatusChart() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/api/dashboard/host-status/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderHostStatusChart(response);
+        //     },
+        //     error: function(error) {
+        //         console.error('加载主机状态失败', error);
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = {
+            labels: ['在线', '离线', '维护中'],
+            data: [12, 2, 1],
+            colors: ['#28a745', '#dc3545', '#ffc107']
+        };
+        
+        renderHostStatusChart(mockData);
+    }
+    
+    // 渲染主机状态图表
+    function renderHostStatusChart(data) {
+        var ctx = document.getElementById('hostStatusChart').getContext('2d');
+        
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    data: data.data,
+                    backgroundColor: data.colors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                legend: {
+                    position: 'right'
+                }
+            }
+        });
+    }
+    
+    // 加载最近活动
+    function loadRecentActivities() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/api/dashboard/recent-activities/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderRecentActivities(response);
+        //     },
+        //     error: function(error) {
+        //         console.error('加载最近活动失败', error);
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [
+            {
+                id: 1,
+                type: 'command_execution',
+                content: '执行命令：df -h',
+                status: 'success',
+                user: '管理员',
+                created_at: '2023-06-03T11:30:00Z'
+            },
+            {
+                id: 2,
+                type: 'command_execution',
+                content: '执行命令：free -m',
+                status: 'success',
+                user: '管理员',
+                created_at: '2023-06-03T11:00:00Z'
+            },
+            {
+                id: 3,
+                type: 'host_added',
+                content: '添加主机：web-server-03',
+                status: 'info',
+                user: '管理员',
+                created_at: '2023-06-03T10:30:00Z'
+            },
+            {
+                id: 4,
+                type: 'command_execution',
+                content: '执行命令：systemctl restart mysql',
+                status: 'failed',
+                user: '管理员',
+                created_at: '2023-06-03T10:00:00Z'
+            },
+            {
+                id: 5,
+                type: 'dangerous_command',
+                content: '拦截危险命令：rm -rf /',
+                status: 'warning',
+                user: '测试用户',
+                created_at: '2023-06-03T09:30:00Z'
+            }
+        ];
+        
+        renderRecentActivities(mockData);
+    }
+    
+    // 渲染最近活动
+    function renderRecentActivities(activities) {
+        var container = $('#recentActivities');
+        container.empty();
+        
+        if (activities.length === 0) {
+            container.append('<li class="item">暂无活动</li>');
+            return;
+        }
+        
+        $.each(activities, function(index, activity) {
+            var createdAt = new Date(activity.created_at).toLocaleString();
+            var iconClass = '';
+            var iconColor = '';
+            
+            // 根据活动类型设置图标
+            switch (activity.type) {
+                case 'command_execution':
+                    iconClass = 'fas fa-terminal';
+                    break;
+                case 'host_added':
+                    iconClass = 'fas fa-server';
+                    break;
+                case 'dangerous_command':
+                    iconClass = 'fas fa-exclamation-triangle';
+                    break;
+                default:
+                    iconClass = 'fas fa-info-circle';
+            }
+            
+            // 根据状态设置颜色
+            switch (activity.status) {
+                case 'success':
+                    iconColor = 'text-success';
+                    break;
+                case 'failed':
+                    iconColor = 'text-danger';
+                    break;
+                case 'warning':
+                    iconColor = 'text-warning';
+                    break;
+                default:
+                    iconColor = 'text-info';
+            }
+            
+            var item = '<li class="item">' +
+                '<div class="product-img">' +
+                    '<i class="' + iconClass + ' ' + iconColor + ' fa-2x"></i>' +
+                '</div>' +
+                '<div class="product-info">' +
+                    '<a href="javascript:void(0)" class="product-title">' + activity.user +
+                        '<span class="float-right text-muted">' + createdAt + '</span>' +
+                    '</a>' +
+                    '<span class="product-description">' + activity.content + '</span>' +
+                '</div>' +
+            '</li>';
+            
+            container.append(item);
+        });
+    }
+    
+    // 加载资源使用情况
+    function loadResourceUsage() {
+        // 模拟AJAX请求，实际项目中应该调用后端API
+        // $.ajax({
+        //     url: '/api/dashboard/resource-usage/',
+        //     type: 'GET',
+        //     success: function(response) {
+        //         renderResourceUsage(response);
+        //     },
+        //     error: function(error) {
+        //         console.error('加载资源使用情况失败', error);
+        //     }
+        // });
+        
+        // 模拟数据
+        var mockData = [
+            {
+                hostname: 'web-server-01',
+                ip_address: '192.168.1.101',
+                cpu_usage: 35,
+                memory_usage: 60,
+                disk_usage: 45
+            },
+            {
+                hostname: 'web-server-02',
+                ip_address: '192.168.1.102',
+                cpu_usage: 25,
+                memory_usage: 40,
+                disk_usage: 30
+            },
+            {
+                hostname: 'db-server-01',
+                ip_address: '192.168.1.201',
+                cpu_usage: 65,
+                memory_usage: 75,
+                disk_usage: 80
+            },
+            {
+                hostname: 'db-server-02',
+                ip_address: '192.168.1.202',
+                cpu_usage: 15,
+                memory_usage: 35,
+                disk_usage: 25
+            },
+            {
+                hostname: 'app-server-01',
+                ip_address: '192.168.1.301',
+                cpu_usage: 45,
+                memory_usage: 55,
+                disk_usage: 40
+            }
+        ];
+        
+        renderResourceUsage(mockData);
+    }
+    
+    // 渲染资源使用情况
+    function renderResourceUsage(hosts) {
+        var tableBody = $('#resourceUsageBody');
+        tableBody.empty();
+        
+        if (hosts.length === 0) {
+            tableBody.append('<tr><td colspan="4" class="text-center">暂无数据</td></tr>');
+            return;
+        }
+        
+        $.each(hosts, function(index, host) {
+            // 根据使用率设置进度条颜色
+            var cpuClass = getProgressBarClass(host.cpu_usage);
+            var memoryClass = getProgressBarClass(host.memory_usage);
+            var diskClass = getProgressBarClass(host.disk_usage);
+            
+            var row = '<tr>' +
+                '<td>' + host.hostname + ' (' + host.ip_address + ')</td>' +
+                '<td>' +
+                    '<div class="progress">' +
+                        '<div class="progress-bar ' + cpuClass + '" role="progressbar" style="width: ' + host.cpu_usage + '%" aria-valuenow="' + host.cpu_usage + '" aria-valuemin="0" aria-valuemax="100">' + host.cpu_usage + '%</div>' +
+                    '</div>' +
+                '</td>' +
+                '<td>' +
+                    '<div class="progress">' +
+                        '<div class="progress-bar ' + memoryClass + '" role="progressbar" style="width: ' + host.memory_usage + '%" aria-valuenow="' + host.memory_usage + '" aria-valuemin="0" aria-valuemax="100">' + host.memory_usage + '%</div>' +
+                    '</div>' +
+                '</td>' +
+                '<td>' +
+                    '<div class="progress">' +
+                        '<div class="progress-bar ' + diskClass + '" role="progressbar" style="width: ' + host.disk_usage + '%" aria-valuenow="' + host.disk_usage + '" aria-valuemin="0" aria-valuemax="100">' + host.disk_usage + '%</div>' +
+                    '</div>' +
+                '</td>' +
+            '</tr>';
+            
+            tableBody.append(row);
+        });
+    }
+    
+    // 根据使用率获取进度条样式
+    function getProgressBarClass(usage) {
+        if (usage < 50) {
+            return 'bg-success';
+        } else if (usage < 80) {
+            return 'bg-warning';
+        } else {
+            return 'bg-danger';
+        }
+    }
+</script>
+{% endblock %}
